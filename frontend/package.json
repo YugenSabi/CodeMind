@@ -1,0 +1,27 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "dashboard/identity",
+    "packages/ui/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace @dashboard/identity dev",
+    "lint": "yarn workspace @dashboard/identity lint",
+    "typecheck": "yarn workspace @dashboard/identity typecheck",
+    "test": "yarn workspace @dashboard/identity test",
+    "test:watch": "yarn workspace @dashboard/identity test:watch",
+    "test:coverage": "yarn workspace @dashboard/identity test:coverage",
+    "check": "yarn lint && yarn typecheck",
+    "check:all": "yarn lint && yarn typecheck && yarn test && yarn build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "yarn workspace @dashboard/identity build",
+    "start": "yarn workspace @dashboard/identity start"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  },
+  "packageManager": "yarn@4.13.0"
+}

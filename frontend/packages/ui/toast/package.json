@@ -1,0 +1,11 @@
+{
+  "name": "@ui/toast",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ui/layout": "*",
+    "@ui/text": "*",
+    "@ui/theme": "*"
+  }
+}
