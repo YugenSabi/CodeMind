@@ -61,7 +61,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   );
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
+  const [isRoomCodeCopied, setIsRoomCodeCopied] = useState(false);
   const participantsMenuRef = useRef<HTMLDivElement | null>(null);
+  const roomCodeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -229,6 +231,14 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     };
   }, [isParticipantsOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (roomCodeCopyTimeoutRef.current) {
+        clearTimeout(roomCodeCopyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (requiresVerification) {
     return (
       <RoomStateShell>
@@ -276,6 +286,40 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       type: 'delete-file',
       file,
     });
+  };
+
+  const handleCopyRoomCode = async () => {
+    if (!room?.code) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(room.code);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = room.code;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+
+      setIsRoomCodeCopied(true);
+
+      if (roomCodeCopyTimeoutRef.current) {
+        clearTimeout(roomCodeCopyTimeoutRef.current);
+      }
+
+      roomCodeCopyTimeoutRef.current = setTimeout(() => {
+        setIsRoomCodeCopied(false);
+      }, 2000);
+    } catch {
+      setErrorMessage('Не удалось скопировать код комнаты. Попробуйте еще раз.');
+    }
   };
 
   const handleConfirmAction = async () => {
@@ -442,7 +486,11 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           alignItems="center"
         >
           <Box alignItems="center" gap={10}>
-            <RoomCodeBadge code={room.code} />
+            <RoomCodeBadge
+              code={room.code}
+              isCopied={isRoomCodeCopied}
+              onCopy={handleCopyRoomCode}
+            />
             <Text color="$secondaryText" font="$footer" size={14} lineHeight="18px">
               {room.name}
             </Text>
@@ -1062,7 +1110,15 @@ function ConfirmModal({
   );
 }
 
-function RoomCodeBadge({ code }: { code: string }): ReactNode {
+function RoomCodeBadge({
+  code,
+  isCopied,
+  onCopy,
+}: {
+  code: string;
+  isCopied: boolean;
+  onCopy: () => void;
+}): ReactNode {
   return (
     <Box
       backgroundColor="$mainCards"
@@ -1082,7 +1138,43 @@ function RoomCodeBadge({ code }: { code: string }): ReactNode {
       <Text color="#FFFFFF" font="$rus" size={16} lineHeight="20px">
         {code}
       </Text>
+      <Button
+        type="button"
+        variant="ghost"
+        width={38}
+        height={40}
+        minWidth={38}
+        minHeight={40}
+        padding={0}
+        border="1px solid"
+        borderColor={isCopied ? '#43953D' : '$border'}
+        borderRadius={12}
+        textColor="#FFFFFF"
+        bg="transparent"
+        onClick={onCopy}
+        aria-label={isCopied ? 'Код комнаты скопирован' : 'Скопировать код комнаты'}
+      >
+        <CopyRoomCodeIcon />
+      </Button>
+      {isCopied ? (
+        <Text color="#B7F3B3" font="$footer" size={12} lineHeight="16px">
+          Скопировано
+        </Text>
+      ) : null}
     </Box>
+  );
+}
+
+function CopyRoomCodeIcon(): ReactNode {
+  return (
+    <svg width="20" height="20" viewBox="0 0 38 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M0 29.2188V1.71875L1.875 0H26.25L28.125 1.71875V8.59375H35.625L37.5 10.3125V37.8125L35.625 39.5312H11.25L9.375 37.8125V30.9375H1.875L0 29.2188ZM9.375 27.5V10.3125L11.25 8.59375H24.375V3.4375H3.75V27.5H9.375ZM33.75 12.0312H13.125V36.0938H33.75V12.0312Z"
+        fill="white"
+      />
+    </svg>
   );
 }
 

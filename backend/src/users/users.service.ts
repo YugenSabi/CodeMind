@@ -59,16 +59,36 @@ export class UsersService {
       });
     }
 
-    return this.prismaService.user.create({
-      data: {
-        kratosIdentityId: identity.id,
-        email,
-        isVerified,
-        firstName: identity.traits?.first_name ?? null,
-        lastName: identity.traits?.last_name ?? null,
-        role: UserRole.USER,
-      },
-    });
+    try {
+      return await this.prismaService.user.create({
+        data: {
+          kratosIdentityId: identity.id,
+          email,
+          isVerified,
+          firstName: identity.traits?.first_name ?? null,
+          lastName: identity.traits?.last_name ?? null,
+          role: UserRole.USER,
+        },
+      });
+    } catch {
+      const concurrentUser = await this.prismaService.user.findUnique({
+        where: { kratosIdentityId: identity.id },
+      });
+
+      if (concurrentUser) {
+        return this.prismaService.user.update({
+          where: { id: concurrentUser.id },
+          data: {
+            email,
+            isVerified,
+            firstName: concurrentUser.firstName ?? identity.traits?.first_name ?? null,
+            lastName: concurrentUser.lastName ?? identity.traits?.last_name ?? null,
+          },
+        });
+      }
+
+      throw new Error('Failed to synchronize user identity');
+    }
   }
 
   async getProfileView(userId: string) {
