@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { GeneratorComponent } from '@fragments/generator';
+import { DashboardComponent } from '@fragments/dashboard';
 
 export default function DashboardPage(): ReactNode {
-  return <GeneratorComponent />;
+  return <DashboardComponent />;
 }
