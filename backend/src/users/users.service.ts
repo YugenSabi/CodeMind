@@ -73,6 +73,12 @@ export class UsersService {
     });
   }
 
+  findById(userId: string) {
+    return this.prismaService.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+  }
+
   async updateProfile(userId: string, updateMeDto: UpdateMeDto) {
     await this.prismaService.user.update({
       where: { id: userId },

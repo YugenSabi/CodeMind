@@ -1,47 +1,47 @@
 import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { AuthService } from '../auth/auth.service';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 
 @Controller('rooms')
 export class RoomsController {
-  constructor(
-    private readonly roomsService: RoomsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
-  async createRoom(@Req() request: Request, @Body() dto: CreateRoomDto) {
-    const user = await this.authService.getAuthenticatedUser(request);
-    return this.roomsService.createRoom(user.id, dto);
+  createRoom(@Req() request: Request, @Body() dto: CreateRoomDto) {
+    return this.roomsService.createRoom(request, dto);
   }
 
   @Get(':id')
-  getRoom(@Param('id') id: string) {
-    return this.roomsService.getRoom(id);
+  getRoom(@Req() request: Request, @Param('id') id: string) {
+    return this.roomsService.getRoom(request, id);
   }
 
   @Post('join')
-  async joinRoom(@Req() request: Request, @Body() dto: JoinRoomDto) {
-    const user = await this.authService.getAuthenticatedUser(request);
-    return this.roomsService.joinRoomByCode(dto.code, user.id);
+  joinRoom(@Req() request: Request, @Body() dto: JoinRoomDto) {
+    return this.roomsService.addUserToRoomByCode(
+      request,
+      dto.code ?? dto.joinCode ?? '',
+    );
   }
 
-  @Delete(':id')
-  async deleteRoom(@Req() request: Request, @Param('id') id: string) {
-    const user = await this.authService.getAuthenticatedUser(request);
-    return this.roomsService.deleteRoom(id, user.id);
+  @Get(':id/files')
+  getRoomFiles(@Req() request: Request, @Param('id') id: string) {
+    return this.roomsService.getRoomFiles(request, id);
   }
 
   @Delete(':id/members/:participantId')
-  async removeParticipant(
+  removeParticipant(
     @Req() request: Request,
     @Param('id') id: string,
     @Param('participantId') participantId: string,
   ) {
-    const user = await this.authService.getAuthenticatedUser(request);
-    return this.roomsService.removeParticipant(id, user.id, participantId);
+    return this.roomsService.removeParticipant(request, id, participantId);
+  }
+
+  @Delete(':id')
+  deleteRoom(@Req() request: Request, @Param('id') id: string) {
+    return this.roomsService.deleteRoom(request, id);
   }
 }

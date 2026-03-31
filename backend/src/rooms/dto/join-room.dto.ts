@@ -1,8 +1,13 @@
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class JoinRoomDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @Length(6, 12)
-  code: string;
+  @Length(8, 8)
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(8, 8)
+  joinCode?: string;
 }
