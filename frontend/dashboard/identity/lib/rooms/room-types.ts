@@ -1,8 +1,11 @@
+import type { RoomFile } from '@lib/files';
+
 export type RoomParticipant = {
   id: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
+  role?: string;
 };
 
 export type Room = {
@@ -13,6 +16,7 @@ export type Room = {
   updatedAt: string;
   owner: RoomParticipant;
   users: RoomParticipant[];
+  files: RoomFile[];
 };
 
 export type CreateRoomPayload = {

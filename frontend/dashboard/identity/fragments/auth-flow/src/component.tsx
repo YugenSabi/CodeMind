@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuthSession } from '@lib/auth';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { Box } from '@ui/layout';
@@ -24,11 +25,15 @@ export function AuthFlowComponent({
   flowType,
 }: AuthFlowComponentProps): ReactNode {
   const searchParams = useSearchParams();
+  const { user } = useAuthSession();
   const [flow, setFlow] = useState<KratosFlow | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationInfo, setVerificationInfo] = useState<string | null>(null);
 
   const copy = useMemo(() => getFlowPageCopy(flowType), [flowType]);
+  const isVerifiedRedirect = searchParams.get('verified') === '1';
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +133,15 @@ export function AuthFlowComponent({
         {!isLoading && errorMessage ? (
           <StatusMessage text={errorMessage} tone="error" />
         ) : null}
+        {!isLoading && isVerifiedRedirect ? (
+          <StatusMessage
+            text="Почта подтверждена. Теперь войдите в аккаунт."
+            tone="muted"
+          />
+        ) : null}
+        {!isLoading && verificationInfo ? (
+          <StatusMessage text={verificationInfo} tone="muted" />
+        ) : null}
 
         {!isLoading && flow ? (
           <form action={flow.ui.action} method={flow.ui.method}>
@@ -181,6 +195,40 @@ export function AuthFlowComponent({
                   fontSize={15}
                 >
                   {copy.secondaryAction.label}
+                </Button>
+              ) : null}
+
+              {flowType === 'verification' ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  height={44}
+                  borderRadius={15}
+                  textColor="$secondaryText"
+                  font="$footer"
+                  fontSize={15}
+                  disabled={isResendingVerification}
+                  onClick={() => {
+                    void handleResendVerificationCode({
+                      onStart: () => {
+                        setIsResendingVerification(true);
+                        setErrorMessage(null);
+                        setVerificationInfo(null);
+                      },
+                      onSuccess: (message) => {
+                        setIsResendingVerification(false);
+                        setVerificationInfo(message);
+                      },
+                      onError: (message) => {
+                        setIsResendingVerification(false);
+                        setErrorMessage(message);
+                      },
+                    });
+                  }}
+                >
+                  {isResendingVerification
+                    ? 'Отправка...'
+                    : `Отправить код повторно${user?.email ? ` на ${user.email}` : ''}`}
                 </Button>
               ) : null}
             </Box>
@@ -325,4 +373,56 @@ function resolveAutoComplete(
   }
   if (name === 'code') return 'one-time-code';
   return undefined;
+}
+
+async function handleResendVerificationCode({
+  onStart,
+  onSuccess,
+  onError,
+}: {
+  onStart: () => void;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
+
+  try {
+    onStart();
+
+    const response = await fetch(`${backendUrl}/auth/verification/resend`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { success?: boolean; email?: string; message?: string | string[] }
+      | null;
+
+    if (!response.ok) {
+      if (typeof payload?.message === 'string') {
+        onError(payload.message);
+        return;
+      }
+
+      if (Array.isArray(payload?.message)) {
+        onError(payload.message.join(', '));
+        return;
+      }
+
+      onError('Не удалось отправить письмо повторно.');
+      return;
+    }
+
+    onSuccess(
+      payload?.email
+        ? `Письмо повторно отправлено на ${payload.email}.`
+        : 'Письмо отправлено повторно.',
+    );
+  } catch {
+    onError('Не удалось отправить письмо повторно.');
+  }
 }

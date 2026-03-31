@@ -23,11 +23,15 @@ type SessionUser = {
 type SessionState = {
   user: SessionUser | null;
   isLoading: boolean;
+  requiresVerification: boolean;
+  verificationMessage: string | null;
 };
 
 const AuthSessionContext = createContext<SessionState>({
   user: null,
   isLoading: true,
+  requiresVerification: false,
+  verificationMessage: null,
 });
 
 type AuthSessionProviderProps = {
@@ -40,6 +44,8 @@ export function AuthSessionProvider({
   const [state, setState] = useState<SessionState>({
     user: null,
     isLoading: true,
+    requiresVerification: false,
+    verificationMessage: null,
   });
 
   useEffect(() => {
@@ -54,10 +60,26 @@ export function AuthSessionProvider({
         });
 
         if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | {
+                code?: string;
+                message?: string | string[];
+                user?: SessionUser;
+              }
+            | null;
+
           if (!cancelled) {
             setState({
-              user: null,
+              user:
+                payload?.code === 'ACCOUNT_NOT_VERIFIED'
+                  ? payload.user ?? null
+                  : null,
               isLoading: false,
+              requiresVerification: payload?.code === 'ACCOUNT_NOT_VERIFIED',
+              verificationMessage:
+                typeof payload?.message === 'string'
+                  ? payload.message
+                  : 'Подтвердите аккаунт, чтобы продолжить работу.',
             });
           }
           return;
@@ -69,6 +91,8 @@ export function AuthSessionProvider({
           setState({
             user: payload,
             isLoading: false,
+            requiresVerification: false,
+            verificationMessage: null,
           });
         }
       } catch {
@@ -76,6 +100,8 @@ export function AuthSessionProvider({
           setState({
             user: null,
             isLoading: false,
+            requiresVerification: false,
+            verificationMessage: null,
           });
         }
       }

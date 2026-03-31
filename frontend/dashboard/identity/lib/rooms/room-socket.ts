@@ -16,9 +16,11 @@ export function connectRoomSocket() {
   });
 }
 
+export type RoomSocket = Socket;
+
 export function joinRoomSocket(
   socket: Socket,
-  payload: { roomId: string; userId: string },
+  payload: { roomId: string },
 ) {
   socket.emit('joinRoom', payload);
 }

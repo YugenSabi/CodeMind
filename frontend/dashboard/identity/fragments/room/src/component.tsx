@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthSession } from '@lib/auth';
+import { createFile, deleteFile, type RoomFile } from '@lib/files';
 import {
   connectRoomSocket,
   deleteRoom,
@@ -12,11 +13,13 @@ import {
   removeRoomParticipant,
   type Room,
   type RoomParticipant,
+  type RoomSocket,
   type RoomSocketStatus,
 } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
+import { CollaborativeEditor } from './collaborative-editor';
 
 type RoomComponentProps = {
   roomId: string;
@@ -30,20 +33,33 @@ type ConfirmState =
       type: 'remove-participant';
       participant: RoomParticipant;
     }
+  | {
+      type: 'delete-file';
+      file: RoomFile;
+    }
   | null;
 
 export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const router = useRouter();
-  const { user } = useAuthSession();
+  const { user, requiresVerification, verificationMessage } = useAuthSession();
   const [room, setRoom] = useState<Room | null>(null);
+  const stableRoomId = room?.id;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [socketStatus, setSocketStatus] = useState<RoomSocketStatus>('idle');
+  const [roomSocket, setRoomSocket] = useState<RoomSocket | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+  const [isCreatingFile, setIsCreatingFile] = useState(false);
+  const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
+  const [newFileBaseName, setNewFileBaseName] = useState('');
+  const [newFileLanguage, setNewFileLanguage] =
+    useState<RoomFile['language']>('TYPESCRIPT');
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [removingParticipantId, setRemovingParticipantId] = useState<string | null>(
     null,
   );
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const participantsMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,6 +75,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         if (!cancelled) {
           setRoom(nextRoom);
+          setSelectedFileId((current) => current ?? nextRoom.files[0]?.id ?? null);
         }
       } catch (error) {
         if (!cancelled) {
@@ -83,18 +100,18 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   }, [roomId]);
 
   useEffect(() => {
-    if (!room || !user) {
+    if (!stableRoomId || !user) {
       setSocketStatus('idle');
       return;
     }
 
     const socket = connectRoomSocket();
+    setRoomSocket(socket);
     setSocketStatus('connecting');
 
     socket.on('connect', () => {
       joinRoomSocket(socket, {
-        roomId: room.id,
-        userId: user.id,
+        roomId: stableRoomId,
       });
       setSocketStatus('connected');
     });
@@ -107,10 +124,89 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setSocketStatus('idle');
     });
 
+    socket.on('room:joined', (payload: { participants?: RoomParticipant[] }) => {
+      setRoom((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          users: payload.participants ?? current.users,
+        };
+      });
+    });
+
+    socket.on('room:presence', (payload: { participants?: RoomParticipant[] }) => {
+      setRoom((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          users: payload.participants ?? current.users,
+        };
+      });
+    });
+
+    socket.on('room:file_created', (payload: { file?: RoomFile }) => {
+      setRoom((current) => {
+        if (!current || !payload.file) {
+          return current;
+        }
+
+        const nextFiles = [
+          payload.file,
+          ...current.files.filter((file) => file.id !== payload.file?.id),
+        ];
+
+        return {
+          ...current,
+          files: nextFiles,
+        };
+      });
+
+      setSelectedFileId((current) => current ?? payload.file?.id ?? null);
+    });
+
+    socket.on('room:file_updated', (payload: { file?: RoomFile }) => {
+      setRoom((current) => {
+        if (!current || !payload.file) {
+          return current;
+        }
+
+        return {
+          ...current,
+          files: current.files.map((file) =>
+            file.id === payload.file?.id ? payload.file : file,
+          ),
+        };
+      });
+    });
+
+    socket.on('room:file_deleted', (payload: { fileId?: string }) => {
+      setRoom((current) => {
+        if (!current || !payload.fileId) {
+          return current;
+        }
+
+        return {
+          ...current,
+          files: current.files.filter((file) => file.id !== payload.fileId),
+        };
+      });
+
+      setSelectedFileId((current) =>
+        current === payload.fileId ? null : current,
+      );
+    });
+
     return () => {
+      setRoomSocket(null);
       disconnectRoomSocket(socket);
     };
-  }, [room, user]);
+  }, [stableRoomId, user?.id]);
 
   useEffect(() => {
     if (!isParticipantsOpen) {
@@ -133,7 +229,24 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     };
   }, [isParticipantsOpen]);
 
+  if (requiresVerification) {
+    return (
+      <RoomStateShell>
+        <StatusCard
+          title="Подтвердите аккаунт"
+          description={
+            verificationMessage ??
+            'Без подтверждения почты совместное редактирование недоступно.'
+          }
+          tone="muted"
+        />
+      </RoomStateShell>
+    );
+  }
+
   const isOwner = Boolean(user && room && user.id === room.owner.id);
+  const selectedFile =
+    room?.files.find((file) => file.id === selectedFileId) ?? room?.files[0] ?? null;
 
   const confirmDeleteRoom = () => {
     if (!room || isDeletingRoom) {
@@ -151,6 +264,17 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     setConfirmState({
       type: 'remove-participant',
       participant,
+    });
+  };
+
+  const confirmDeleteFile = (file: RoomFile) => {
+    if (deletingFileId) {
+      return;
+    }
+
+    setConfirmState({
+      type: 'delete-file',
+      file,
     });
   };
 
@@ -180,6 +304,27 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       return;
     }
 
+    if (confirmState.type === 'delete-file') {
+      try {
+        setDeletingFileId(confirmState.file.id);
+        setErrorMessage(null);
+
+        await deleteFile(confirmState.file.id);
+        setConfirmState(null);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'Не удалось удалить файл. Попробуйте еще раз.',
+        );
+        setConfirmState(null);
+      } finally {
+        setDeletingFileId(null);
+      }
+
+      return;
+    }
+
     try {
       setRemovingParticipantId(confirmState.participant.id);
       setErrorMessage(null);
@@ -200,6 +345,47 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setConfirmState(null);
     } finally {
       setRemovingParticipantId(null);
+    }
+  };
+
+  const handleCreateFile = async () => {
+    if (!room || isCreatingFile) {
+      return;
+    }
+
+    const normalizedBaseName = newFileBaseName.trim();
+
+    if (!normalizedBaseName) {
+      setErrorMessage('Введите название файла');
+      return;
+    }
+
+    try {
+      setIsCreatingFile(true);
+      setErrorMessage(null);
+
+      const nextFile = await createFile({
+        roomId: room.id,
+        name: `${normalizedBaseName}${getFileExtension(newFileLanguage)}`,
+        language: newFileLanguage,
+      });
+
+      setRoom({
+        ...room,
+        files: [nextFile, ...room.files],
+      });
+      setSelectedFileId(nextFile.id);
+      setIsCreateFileModalOpen(false);
+      setNewFileBaseName(buildNextFileBaseName(room.files));
+      setNewFileLanguage('TYPESCRIPT');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось создать файл. Попробуйте еще раз.',
+      );
+    } finally {
+      setIsCreatingFile(false);
     }
   };
 
@@ -332,13 +518,117 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         <Box
           width="$full"
-          height="$full"
-          backgroundColor="$background"
-          border="1px solid"
-          borderColor="$border"
-          borderRadius={30}
-          padding={18}
-        />
+          minHeight={640}
+          gap={16}
+          alignItems="stretch"
+        >
+          <Box
+            width={320}
+            backgroundColor="$background"
+            border="1px solid"
+            borderColor="$border"
+            borderRadius={30}
+            padding={18}
+            flexDirection="column"
+            gap={14}
+          >
+            <Box justifyContent="space-between" alignItems="center" gap={12}>
+              <Box flexDirection="column" gap={4}>
+                <Text color="#FFFFFF" font="$rus" size={22} lineHeight="26px">
+                  Файлы комнаты
+                </Text>
+                <Text color="$secondaryText" font="$footer" size={13} lineHeight="18px">
+                  Создай файл и подключись к realtime-редактированию.
+                </Text>
+              </Box>
+
+            <Button
+              type="button"
+              variant="filled"
+                height={42}
+                padding={16}
+                borderRadius={16}
+                bg="#43953D"
+                textColor="#FFFFFF"
+                disabled={isCreatingFile}
+                onClick={() => {
+                  setNewFileBaseName(buildNextFileBaseName(room.files));
+                  setNewFileLanguage('TYPESCRIPT');
+                  setIsCreateFileModalOpen(true);
+                }}
+            >
+                <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+                  {isCreatingFile ? 'Создание...' : '+ Файл'}
+                </Text>
+              </Button>
+            </Box>
+
+            {room.files.length === 0 ? (
+              <Box
+                backgroundColor="rgba(145, 152, 161, 0.08)"
+                border="1px solid"
+                borderColor="$border"
+                borderRadius={20}
+                padding={16}
+              >
+                <Text color="$secondaryText" font="$footer" size={14} lineHeight="20px">
+                  В комнате пока нет файлов. Создай первый файл и он сразу
+                  подключится к collaborative editor.
+                </Text>
+              </Box>
+            ) : (
+              <Box flexDirection="column" gap={10}>
+                {room.files.map((file) => (
+                  <FileCard
+                    key={file.id}
+                    file={file}
+                    isActive={file.id === selectedFile?.id}
+                    canDelete={isOwner || file.ownerId === user?.id}
+                    isDeleting={deletingFileId === file.id}
+                    onClick={() => {
+                      setSelectedFileId(file.id);
+                    }}
+                    onDelete={() => {
+                      confirmDeleteFile(file);
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+
+          <Box
+            minHeight={640}
+            backgroundColor="$background"
+            border="1px solid"
+            borderColor="$border"
+            borderRadius={30}
+            padding={18}
+            style={{ flex: 1 }}
+          >
+            {selectedFile ? (
+              <CollaborativeEditor
+                file={selectedFile}
+                user={user}
+                roomId={room.id}
+                socket={roomSocket}
+              />
+            ) : (
+              <Box
+                width="$full"
+                height="$full"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <StatusCard
+                  title="Файл не выбран"
+                  description="Создай файл в комнате, и здесь откроется редактор."
+                  tone="muted"
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
       </Box>
 
       {confirmState ? (
@@ -346,22 +636,28 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           title={
             confirmState.type === 'delete-room'
               ? 'Удалить комнату'
-              : 'Удалить участника'
+              : confirmState.type === 'delete-file'
+                ? 'Удалить файл'
+                : 'Удалить участника'
           }
           description={
             confirmState.type === 'delete-room'
               ? 'Вы точно хотите удалить комнату?'
-              : `Вы точно хотите удалить участника ${getParticipantName(
-                  confirmState.participant,
-                )}?`
+              : confirmState.type === 'delete-file'
+                ? `Вы точно хотите удалить файл ${confirmState.file.name}?`
+                : `Вы точно хотите удалить участника ${getParticipantName(
+                    confirmState.participant,
+                  )}?`
           }
           isLoading={
             confirmState.type === 'delete-room'
               ? isDeletingRoom
-              : removingParticipantId === confirmState.participant.id
+              : confirmState.type === 'delete-file'
+                ? deletingFileId === confirmState.file.id
+                : removingParticipantId === confirmState.participant.id
           }
           onCancel={() => {
-            if (isDeletingRoom || removingParticipantId) {
+            if (isDeletingRoom || removingParticipantId || deletingFileId) {
               return;
             }
 
@@ -372,7 +668,249 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           }}
         />
       ) : null}
+
+      {isCreateFileModalOpen ? (
+        <CreateFileModal
+          fileName={newFileBaseName}
+          fileExtension={getFileExtension(newFileLanguage)}
+          language={newFileLanguage}
+          isLoading={isCreatingFile}
+          onNameChange={setNewFileBaseName}
+          onLanguageChange={(value) => {
+            setNewFileLanguage(value);
+          }}
+          onCancel={() => {
+            if (isCreatingFile) {
+              return;
+            }
+
+            setIsCreateFileModalOpen(false);
+          }}
+          onConfirm={() => {
+            void handleCreateFile();
+          }}
+        />
+      ) : null}
     </>
+  );
+}
+
+function FileCard({
+  file,
+  isActive,
+  canDelete,
+  isDeleting,
+  onClick,
+  onDelete,
+}: {
+  file: RoomFile;
+  isActive: boolean;
+  canDelete: boolean;
+  isDeleting: boolean;
+  onClick: () => void;
+  onDelete: () => void;
+}): ReactNode {
+  return (
+    <Box
+      width="$full"
+      position="relative"
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        width="$full"
+        height="auto"
+        minHeight={0}
+        padding={0}
+        textColor="#FFFFFF"
+        onClick={onClick}
+      >
+        <Box
+          width="$full"
+          backgroundColor={isActive ? '#1C2530' : '#151B23'}
+          border="1px solid"
+          borderColor={isActive ? '#43953D' : '$border'}
+          borderRadius={20}
+          padding={16}
+          flexDirection="column"
+          alignItems="flex-start"
+          gap={6}
+        >
+          <Text color="#FFFFFF" font="$footer" size={15} lineHeight="20px">
+            {file.name}
+          </Text>
+          <Text color="$secondaryText" font="$footer" size={12} lineHeight="16px">
+            {file.language} · {file.documentName}
+          </Text>
+        </Box>
+      </Button>
+
+      {canDelete ? (
+        <Button
+          type="button"
+          variant="ghost"
+          width={30}
+          height={30}
+          minWidth={30}
+          minHeight={30}
+          padding={0}
+          border="1px solid"
+          borderColor="#D14343"
+          borderRadius={10}
+          textColor="#FFB4B4"
+          bg="#151B23"
+          style={{ position: 'absolute', top: 10, right: 10 }}
+          disabled={isDeleting}
+          onClick={onDelete}
+        >
+          <Text color="#FFB4B4" font="$footer" size={16} lineHeight="16px">
+            {isDeleting ? '…' : '×'}
+          </Text>
+        </Button>
+      ) : null}
+    </Box>
+  );
+}
+
+function CreateFileModal({
+  fileName,
+  fileExtension,
+  language,
+  isLoading,
+  onNameChange,
+  onLanguageChange,
+  onCancel,
+  onConfirm,
+}: {
+  fileName: string;
+  fileExtension: string;
+  language: RoomFile['language'];
+  isLoading: boolean;
+  onNameChange: (value: string) => void;
+  onLanguageChange: (value: RoomFile['language']) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactNode {
+  return (
+    <Box
+      position="fixed"
+      inset={0}
+      zIndex={20}
+      backgroundColor="rgba(21, 27, 35, 0.72)"
+      alignItems="center"
+      justifyContent="center"
+      padding={24}
+    >
+      <Box
+        width="$full"
+        maxWidth={520}
+        backgroundColor="$cardBg"
+        border="1px solid"
+        borderColor="$border"
+        borderRadius={28}
+        padding={24}
+        flexDirection="column"
+        gap={18}
+      >
+        <Box flexDirection="column" gap={8}>
+          <Text color="#FFFFFF" font="$rus" size={28} lineHeight="32px">
+            Создать файл
+          </Text>
+          <Text color="$secondaryText" font="$footer" size={16} lineHeight="22px">
+            Выберите название и тип файла для комнаты.
+          </Text>
+        </Box>
+
+        <Box flexDirection="column" gap={8}>
+          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+            Название файла
+          </Text>
+          <Box alignItems="center" gap={8}>
+            <input
+              value={fileName}
+              onChange={(event) => {
+                onNameChange(stripFileExtension(event.target.value));
+              }}
+              placeholder="Например, main"
+              style={{
+                ...getModalFieldStyles(),
+                flex: 1,
+              }}
+            />
+            <Box
+              minWidth={72}
+              height={48}
+              border="1px solid"
+              borderColor="$border"
+              borderRadius={16}
+              alignItems="center"
+              justifyContent="center"
+              paddingLeft={12}
+              paddingRight={12}
+              backgroundColor="#151B23"
+            >
+              <Text color="$secondaryText" font="$footer" size={14} lineHeight="18px">
+                {fileExtension || 'none'}
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box flexDirection="column" gap={8}>
+          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+            Тип файла
+          </Text>
+          <select
+            value={language}
+            onChange={(event) => {
+              onLanguageChange(event.target.value as RoomFile['language']);
+            }}
+            style={getModalFieldStyles()}
+          >
+            {FILE_LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Box>
+
+        <Box justifyContent="flex-end" gap={10}>
+          <Button
+            type="button"
+            variant="ghost"
+            height={44}
+            padding={18}
+            border="1px solid"
+            borderColor="$border"
+            borderRadius={16}
+            textColor="#FFFFFF"
+            disabled={isLoading}
+            onClick={onCancel}
+          >
+            <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+              Отмена
+            </Text>
+          </Button>
+
+          <Button
+            type="button"
+            variant="filled"
+            height={44}
+            padding={18}
+            borderRadius={16}
+            bg="#43953D"
+            textColor="#FFFFFF"
+            disabled={isLoading}
+            onClick={onConfirm}
+          >
+            <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+              {isLoading ? 'Создание...' : 'Создать'}
+            </Text>
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 
@@ -779,3 +1317,61 @@ function getParticipantInitial(participant: {
   const name = getParticipantName(participant).trim();
   return name.charAt(0).toUpperCase();
 }
+
+function buildNextFileBaseName(files: RoomFile[]) {
+  const nextIndex = files.length + 1;
+  return `main-${nextIndex}`;
+}
+
+function getModalFieldStyles() {
+  return {
+    width: '100%',
+    height: 48,
+    borderRadius: 16,
+    border: '1px solid #383F47',
+    background: '#151B23',
+    color: '#FFFFFF',
+    padding: '0 14px',
+    outline: 'none',
+    fontSize: '14px',
+  } as const;
+}
+
+function getFileExtension(language: RoomFile['language']) {
+  switch (language) {
+    case 'TYPESCRIPT':
+      return '.ts';
+    case 'JAVASCRIPT':
+      return '.js';
+    case 'PYTHON':
+      return '.py';
+    case 'JSON':
+      return '.json';
+    case 'HTML':
+      return '.html';
+    case 'CSS':
+      return '.css';
+    case 'MARKDOWN':
+      return '.md';
+    default:
+      return '.txt';
+  }
+}
+
+function stripFileExtension(value: string) {
+  return value.replace(/\.[^./\\]+$/, '');
+}
+
+const FILE_LANGUAGE_OPTIONS: Array<{
+  value: RoomFile['language'];
+  label: string;
+}> = [
+  { value: 'TYPESCRIPT', label: 'TypeScript' },
+  { value: 'JAVASCRIPT', label: 'JavaScript' },
+  { value: 'PYTHON', label: 'Python' },
+  { value: 'JSON', label: 'JSON' },
+  { value: 'HTML', label: 'HTML' },
+  { value: 'CSS', label: 'CSS' },
+  { value: 'MARKDOWN', label: 'Markdown' },
+  { value: 'PLAINTEXT', label: 'Plain text' },
+];

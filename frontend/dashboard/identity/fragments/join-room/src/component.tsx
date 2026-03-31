@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthSession } from '@lib/auth';
 import { joinRoom } from '@lib/rooms';
 import { Input } from '@ui/input';
 import { Box } from '@ui/layout';
@@ -9,6 +10,7 @@ import { Text } from '@ui/text';
 
 export function JoinRoomComponent(): ReactNode {
   const router = useRouter();
+  const { requiresVerification, verificationMessage } = useAuthSession();
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -42,6 +44,39 @@ export function JoinRoomComponent(): ReactNode {
       void handleJoin();
     }
   };
+
+  if (requiresVerification) {
+    return (
+      <Box width="$full" minHeight="$full" alignItems="center" justifyContent="center">
+        <Box
+          width="$full"
+          maxWidth={780}
+          flexDirection="column"
+          alignItems="center"
+          gap={12}
+          backgroundColor="#272D35"
+          border="1px solid"
+          borderColor="$border"
+          borderRadius={30}
+          padding={24}
+        >
+          <Text color="#FFFFFF" font="$rus" size={24} textAlign="center">
+            Подтвердите аккаунт
+          </Text>
+          <Text
+            color="$secondaryText"
+            font="$footer"
+            size={16}
+            lineHeight="22px"
+            textAlign="center"
+          >
+            {verificationMessage ??
+              'Без подтверждения почты вход в комнату недоступен.'}
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box width="$full" minHeight="$full" alignItems="center" justifyContent="center">
