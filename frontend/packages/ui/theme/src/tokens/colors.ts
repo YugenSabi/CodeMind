@@ -1,7 +1,6 @@
 export type ColorTokenName =
   | 'background'
   | 'mainCards'
-  | 'mainText'
   | 'primaryText'
   | 'secondaryText'
   | 'border'
@@ -16,7 +15,6 @@ export type ColorValue = ColorToken | (string & {});
 const COLOR_FALLBACKS: Record<ColorTokenName, string> = {
   background: '#151B23',
   mainCards: '#212830',
-  mainText: '#212830',
   primaryText: '#FFFFFF',
   secondaryText: '#9198A1',
   border: '#383F47',

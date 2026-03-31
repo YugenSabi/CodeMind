@@ -2,7 +2,7 @@ export type RadiusToken = 'sm' | 'md' | 'lg' | 'pill';
 
 const RADIUS_FALLBACKS: Record<RadiusToken, string> = {
   sm: '4px',
-  md: '8px',
+  md: '20px',
   lg: '30px',
   pill: '9999px',
 };
