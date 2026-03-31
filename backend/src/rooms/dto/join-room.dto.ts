@@ -1,3 +1,8 @@
+import { IsNotEmpty, IsString, Length } from 'class-validator';
+
 export class JoinRoomDto {
-  userId: string; // id пользователя, который присоединяется
+  @IsString()
+  @IsNotEmpty()
+  @Length(6, 12)
+  code: string;
 }

@@ -1,14 +1,14 @@
 import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
+  MessageBody,
+  SubscribeMessage,
+  WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-  cors: { origin: '*' }, // нужно для тестов, потом убрать
+  cors: { origin: '*' },
 })
 export class RoomsGateway {
   @WebSocketServer()
@@ -19,17 +19,8 @@ export class RoomsGateway {
     @MessageBody() data: { roomId: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { roomId, userId } = data;
+    const { roomId } = data;
 
     client.join(roomId);
-
-    /*
-    client.to(roomId).emit('notification', {
-      text: `Пользователь ${userId} присоединился к редактированию`,
-    });
-    */
-
-
-    console.log(`User ${userId} connected to room ${roomId}`);
   }
 }

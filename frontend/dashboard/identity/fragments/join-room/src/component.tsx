@@ -1,15 +1,54 @@
-import type { ReactNode } from 'react';
-import { Box } from '@ui/layout';
+'use client';
+
+import { type KeyboardEvent, type ReactNode, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { joinRoom } from '@lib/rooms';
 import { Input } from '@ui/input';
+import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
 export function JoinRoomComponent(): ReactNode {
+  const router = useRouter();
+  const [code, setCode] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+
+  const handleJoin = async () => {
+    const normalizedCode = code.trim().toUpperCase();
+
+    if (!normalizedCode || isJoining) {
+      return;
+    }
+
+    try {
+      setIsJoining(true);
+      setErrorMessage(null);
+
+      const room = await joinRoom({ code: normalizedCode });
+      router.push(`/room/${room.id}`);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось присоединиться к комнате. Попробуйте еще раз.',
+      );
+      setIsJoining(false);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void handleJoin();
+    }
+  };
+
   return (
     <Box width="$full" minHeight="$full" alignItems="center" justifyContent="center">
       <Box
         width="$full"
         maxWidth={780}
-        height={120}
+        minHeight={120}
         flexDirection="column"
         alignItems="center"
         gap={10}
@@ -22,7 +61,16 @@ export function JoinRoomComponent(): ReactNode {
         <Text color="#FFFFFF" font="$rus" size={20} textAlign="center">
           Введите код комнаты:
         </Text>
+
         <Input
+          value={code}
+          onChange={(event) => {
+            setCode(event.target.value.toUpperCase());
+            if (errorMessage) {
+              setErrorMessage(null);
+            }
+          }}
+          onKeyDown={handleKeyDown}
           fullWidth
           variant="outline"
           font="$rus"
@@ -31,14 +79,76 @@ export function JoinRoomComponent(): ReactNode {
           textColor="#FFFFFF"
           borderColor="$border"
           bg="$mainCards"
-          endIcon={<JoinArrowIcon />}
+          endIcon={
+            <JoinArrowButton
+              disabled={isJoining || code.trim().length === 0}
+              onClick={() => {
+                void handleJoin();
+              }}
+            />
+          }
           endIconInteractive
           style={{
-            borderRadius: "20px"
+            borderRadius: '20px',
           }}
+          placeholder="Код комнаты"
+          placeholderColor="$secondaryText"
+          autoComplete="off"
+          spellCheck={false}
         />
+
+        {errorMessage ? (
+          <Box
+            width="$full"
+            backgroundColor="rgba(209, 67, 67, 0.12)"
+            border="1px solid"
+            borderColor="#D14343"
+            borderRadius={18}
+            paddingTop={12}
+            paddingRight={14}
+            paddingBottom={12}
+            paddingLeft={14}
+          >
+            <Text color="#FFB4B4" font="$footer" size={14} lineHeight="20px" textAlign="center">
+              {errorMessage}
+            </Text>
+          </Box>
+        ) : null}
       </Box>
     </Box>
+  );
+}
+
+type JoinArrowButtonProps = {
+  disabled?: boolean;
+  onClick: () => void;
+};
+
+function JoinArrowButton({
+  disabled = false,
+  onClick,
+}: JoinArrowButtonProps): ReactNode {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 31,
+        height: 31,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        border: 'none',
+        background: 'transparent',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+      }}
+      aria-label="Войти в комнату"
+    >
+      <JoinArrowIcon />
+    </button>
   );
 }
 

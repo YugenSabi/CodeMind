@@ -13,8 +13,10 @@ enum UserRole {
 
 model Room {
   id        String   @id @default(cuid())
+  code      String   @unique
   name      String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ownerId   String
   owner     User     @relation("RoomOwner", fields: [ownerId], references: [id])
   users     User[]   @relation("RoomMembers")
