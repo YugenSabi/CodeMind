@@ -42,7 +42,15 @@ export function JoinRoomComponent(): ReactNode {
   );
 }
 
-function JoinArrowIcon(): ReactNode {
+type JoinArrowIconProps = {
+  strokeColor?: string;
+  maskId?: string;
+};
+
+export function JoinArrowIcon({
+  strokeColor = '#3B8640',
+  maskId = 'join-room-mask',
+}: JoinArrowIconProps): ReactNode {
   return (
     <Box
       width={31}
@@ -55,7 +63,7 @@ function JoinArrowIcon(): ReactNode {
     >
       <svg width="31" height="31" viewBox="0 0 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
         <mask
-          id="join-room-mask"
+          id={maskId}
           style={{ maskType: 'luminance' }}
           maskUnits="userSpaceOnUse"
           x="0"
@@ -65,17 +73,17 @@ function JoinArrowIcon(): ReactNode {
         >
           <path d="M31 0H0V31H31V0Z" fill="white" />
         </mask>
-        <g mask="url(#join-room-mask)">
+        <g mask={`url(#${maskId})`}>
           <path
             d="M11.625 5.1665H24.5417V23.2498C24.5417 24.6766 23.3851 25.8331 21.9583 25.8331H11.625"
-            stroke="#3B8640"
+            stroke={strokeColor}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
             d="M15.4999 19.3748L19.3749 15.4998M19.3749 15.4998L15.4999 11.6248M19.3749 15.4998H6.45825"
-            stroke="#3B8640"
+            stroke={strokeColor}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"

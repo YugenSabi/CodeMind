@@ -51,7 +51,7 @@ selfservice:
       after:
         password:
           hooks:
-            - hook: session
+            - hook: show_verification_ui
 
     verification:
       enabled: true

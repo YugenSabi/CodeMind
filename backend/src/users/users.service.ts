@@ -16,32 +16,55 @@ export class UsersService {
     }
 
     const isVerified = this.resolveVerified(identity, email);
-    const existingUser = await this.prismaService.user.findUnique({
+    const existingUserByIdentity = await this.prismaService.user.findUnique({
       where: { kratosIdentityId: identity.id },
     });
 
-    return existingUser
-      ? this.prismaService.user.update({
-          where: { id: existingUser.id },
-          data: {
-            email,
-            isVerified,
-            firstName:
-              existingUser.firstName ?? identity.traits?.first_name ?? null,
-            lastName:
-              existingUser.lastName ?? identity.traits?.last_name ?? null,
-          },
-        })
-      : this.prismaService.user.create({
-          data: {
-            kratosIdentityId: identity.id,
-            email,
-            isVerified,
-            firstName: identity.traits?.first_name ?? null,
-            lastName: identity.traits?.last_name ?? null,
-            role: UserRole.USER,
-          },
-        });
+    if (existingUserByIdentity) {
+      return this.prismaService.user.update({
+        where: { id: existingUserByIdentity.id },
+        data: {
+          email,
+          isVerified,
+          firstName:
+            existingUserByIdentity.firstName ??
+            identity.traits?.first_name ??
+            null,
+          lastName:
+            existingUserByIdentity.lastName ?? identity.traits?.last_name ?? null,
+        },
+      });
+    }
+
+    const existingUserByEmail = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUserByEmail) {
+      return this.prismaService.user.update({
+        where: { id: existingUserByEmail.id },
+        data: {
+          kratosIdentityId: identity.id,
+          email,
+          isVerified,
+          firstName:
+            existingUserByEmail.firstName ?? identity.traits?.first_name ?? null,
+          lastName:
+            existingUserByEmail.lastName ?? identity.traits?.last_name ?? null,
+        },
+      });
+    }
+
+    return this.prismaService.user.create({
+      data: {
+        kratosIdentityId: identity.id,
+        email,
+        isVerified,
+        firstName: identity.traits?.first_name ?? null,
+        lastName: identity.traits?.last_name ?? null,
+        role: UserRole.USER,
+      },
+    });
   }
 
   async getProfileView(userId: string) {
