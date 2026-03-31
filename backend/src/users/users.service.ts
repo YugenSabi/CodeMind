@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import type { UpdateMeDto } from '../auth/dto/update-me.dto';
 import type { KratosWhoAmIResponse } from '../kratos/kratos.types';
@@ -31,7 +31,9 @@ export class UsersService {
             identity.traits?.first_name ??
             null,
           lastName:
-            existingUserByIdentity.lastName ?? identity.traits?.last_name ?? null,
+            existingUserByIdentity.lastName ??
+            identity.traits?.last_name ??
+            null,
         },
       });
     }
@@ -48,7 +50,9 @@ export class UsersService {
           email,
           isVerified,
           firstName:
-            existingUserByEmail.firstName ?? identity.traits?.first_name ?? null,
+            existingUserByEmail.firstName ??
+            identity.traits?.first_name ??
+            null,
           lastName:
             existingUserByEmail.lastName ?? identity.traits?.last_name ?? null,
         },
@@ -89,6 +93,17 @@ export class UsersService {
     });
 
     return this.getProfileView(userId);
+  }
+
+  ensureVerified<T extends { isVerified: boolean }>(user: T) {
+    if (!user.isVerified) {
+      throw new ForbiddenException({
+        code: 'ACCOUNT_NOT_VERIFIED',
+        message: 'Подтвердите аккаунт, чтобы продолжить работу',
+      });
+    }
+
+    return user;
   }
 
   private resolveVerified(

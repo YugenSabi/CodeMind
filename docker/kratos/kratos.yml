@@ -59,7 +59,7 @@ selfservice:
       lifespan: 1h
       use: code
       after:
-        default_browser_return_url: http://localhost:3000/
+        default_browser_return_url: http://localhost:3000/auth/login?verified=1
 
     recovery:
       enabled: true

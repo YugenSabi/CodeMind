@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { UpdateMeDto } from './dto/update-me.dto';
@@ -17,5 +17,10 @@ export class AuthController {
   @Patch('me')
   updateMe(@Req() request: Request, @Body() updateMeDto: UpdateMeDto) {
     return this.authService.updateMe(request, updateMeDto);
+  }
+
+  @Post('verification/resend')
+  resendVerificationCode(@Req() request: Request) {
+    return this.authService.resendVerificationCode(request);
   }
 }

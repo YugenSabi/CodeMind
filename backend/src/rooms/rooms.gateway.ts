@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RoomsService } from './rooms.service';
+import { TerminalService } from './terminal.service';
 
 type RoomSocketData = {
   roomId?: string;
@@ -25,7 +26,10 @@ type RoomSocketData = {
   cors: { origin: '*' },
 })
 export class RoomsGateway implements OnGatewayDisconnect {
-  constructor(private readonly roomsService: RoomsService) {}
+  constructor(
+    private readonly roomsService: RoomsService,
+    private readonly terminalService: TerminalService,
+  ) {}
 
   @WebSocketServer()
   server: Server;
@@ -122,6 +126,108 @@ export class RoomsGateway implements OnGatewayDisconnect {
     this.server.to(roomId).emit('room:presence', {
       roomId,
       participants: this.getParticipants(roomId),
+    });
+  }
+
+  emitFileCreated(roomId: string, file: unknown) {
+    this.server.to(roomId).emit('room:file_created', {
+      roomId,
+      file,
+    });
+  }
+
+  emitFileUpdated(roomId: string, file: unknown) {
+    this.server.to(roomId).emit('room:file_updated', {
+      roomId,
+      file,
+    });
+  }
+
+  emitFileDeleted(roomId: string, fileId: string) {
+    this.server.to(roomId).emit('room:file_deleted', {
+      roomId,
+      fileId,
+    });
+  }
+
+  @SubscribeMessage('terminal:start')
+  async handleTerminalStart(
+    @MessageBody()
+    data: {
+      roomId: string;
+      fileId: string;
+      content: string;
+      cols?: number;
+      rows?: number;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketData = client.data as RoomSocketData;
+
+    if (!socketData.roomId || socketData.roomId !== data.roomId || !socketData.user) {
+      throw new WsException('Join the room before starting terminal');
+    }
+
+    const session = await this.terminalService.startSession({
+      roomId: data.roomId,
+      fileId: data.fileId,
+      content: data.content,
+      user: socketData.user,
+      cols: data.cols,
+      rows: data.rows,
+      onData: (chunk) => {
+        this.server.to(data.roomId).emit('terminal:data', {
+          roomId: data.roomId,
+          chunk,
+        });
+      },
+    });
+
+    this.server.to(data.roomId).emit('terminal:started', session);
+  }
+
+  @SubscribeMessage('terminal:input')
+  async handleTerminalInput(
+    @MessageBody() data: { roomId: string; input: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketData = client.data as RoomSocketData;
+
+    if (!socketData.roomId || socketData.roomId !== data.roomId) {
+      throw new WsException('Join the room before sending terminal input');
+    }
+
+    await this.terminalService.sendInput(data.roomId, data.input);
+  }
+
+  @SubscribeMessage('terminal:resize')
+  async handleTerminalResize(
+    @MessageBody() data: { roomId: string; cols: number; rows: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketData = client.data as RoomSocketData;
+
+    if (!socketData.roomId || socketData.roomId !== data.roomId) {
+      throw new WsException('Join the room before resizing terminal');
+    }
+
+    await this.terminalService.resizeSession(data);
+  }
+
+  @SubscribeMessage('terminal:stop')
+  async handleTerminalStop(
+    @MessageBody() data: { roomId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketData = client.data as RoomSocketData;
+
+    if (!socketData.roomId || socketData.roomId !== data.roomId) {
+      throw new WsException('Join the room before stopping terminal');
+    }
+
+    await this.terminalService.stopSession(data.roomId);
+    this.server.to(data.roomId).emit('terminal:stopped', {
+      roomId: data.roomId,
     });
   }
 

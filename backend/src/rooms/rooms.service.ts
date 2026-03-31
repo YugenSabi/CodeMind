@@ -131,8 +131,11 @@ export class RoomsService {
 
   async getAuthenticatedUserFromCookie(cookie?: string) {
     const session = await this.kratosService.getSessionFromCookie(cookie);
+    const user = await this.usersService.syncFromKratosIdentity(
+      session.identity,
+    );
 
-    return this.usersService.syncFromKratosIdentity(session.identity);
+    return this.usersService.ensureVerified(user);
   }
 
   async getRealtimeRoomContext(roomId: string, cookie?: string) {
@@ -154,8 +157,11 @@ export class RoomsService {
 
   private async getAuthenticatedUserFromRequest(request: Request) {
     const session = await this.kratosService.getSession(request);
+    const user = await this.usersService.syncFromKratosIdentity(
+      session.identity,
+    );
 
-    return this.usersService.syncFromKratosIdentity(session.identity);
+    return this.usersService.ensureVerified(user);
   }
 
   private async getAccessibleRoomById(

@@ -15,3 +15,11 @@ export type KratosWhoAmIResponse = {
     }>;
   };
 };
+
+export type KratosVerificationFlowResponse = {
+  id: string;
+  ui: {
+    action: string;
+    method: 'POST' | 'GET';
+  };
+};

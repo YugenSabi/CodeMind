@@ -9,6 +9,8 @@ import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { FileEventsModule } from './file-events/file-events.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
+import { CodeToolsModule } from './code-tools/code-tools.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { RoomsModule } from './rooms/rooms.module';
     RoomsModule,
     FilesModule,
     FileEventsModule,
+    CollaborationModule,
+    CodeToolsModule,
   ],
 })
 export class AppModule {}

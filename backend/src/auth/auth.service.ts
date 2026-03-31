@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import { KratosService } from '../kratos/kratos.service';
 import { UsersService } from '../users/users.service';
@@ -13,7 +13,11 @@ export class AuthService {
 
   async getAuthenticatedUser(request: Request) {
     const session = await this.kratosService.getSession(request);
-    return this.usersService.syncFromKratosIdentity(session.identity);
+    const user = await this.usersService.syncFromKratosIdentity(
+      session.identity,
+    );
+
+    return this.usersService.ensureVerified(user);
   }
 
   async getMe(request: Request) {
@@ -22,6 +26,18 @@ export class AuthService {
       session.identity,
     );
     const profile = await this.usersService.getProfileView(user.id);
+
+    if (!profile.isVerified) {
+      throw new ForbiddenException({
+        code: 'ACCOUNT_NOT_VERIFIED',
+        message: 'Подтвердите аккаунт, чтобы продолжить работу',
+        user: profile,
+        session: {
+          id: session.id,
+          active: session.active,
+        },
+      });
+    }
 
     return {
       ...profile,
@@ -37,6 +53,7 @@ export class AuthService {
     const user = await this.usersService.syncFromKratosIdentity(
       session.identity,
     );
+    this.usersService.ensureVerified(user);
     const profile = await this.usersService.updateProfile(user.id, updateMeDto);
 
     return {
@@ -46,5 +63,9 @@ export class AuthService {
         active: session.active,
       },
     };
+  }
+
+  async resendVerificationCode(request: Request) {
+    return this.kratosService.resendVerificationCode(request.headers.cookie);
   }
 }

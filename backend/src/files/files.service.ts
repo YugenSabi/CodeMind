@@ -14,6 +14,7 @@ import type { Request } from 'express';
 import { FileEventsService } from '../file-events/file-events.service';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoomsGateway } from '../rooms/rooms.gateway';
 import { UsersService } from '../users/users.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { ListFilesQueryDto } from './dto/list-files-query.dto';
@@ -26,6 +27,7 @@ export class FilesService {
     private readonly fileEventsService: FileEventsService,
     private readonly kratosService: KratosService,
     private readonly usersService: UsersService,
+    private readonly roomsGateway: RoomsGateway,
   ) {}
 
   async create(request: Request, createFileDto: CreateFileDto) {
@@ -57,7 +59,13 @@ export class FilesService {
       },
     });
 
-    return this.toFileView(file);
+    const fileView = this.toFileView(file);
+
+    if (file.roomId) {
+      this.roomsGateway.emitFileCreated(file.roomId, fileView);
+    }
+
+    return fileView;
   }
 
   async list(request: Request, query: ListFilesQueryDto) {
@@ -116,24 +124,28 @@ export class FilesService {
       },
     });
 
-    return this.toFileView(updated);
+    const fileView = this.toFileView(updated);
+
+    if (updated.roomId) {
+      this.roomsGateway.emitFileUpdated(updated.roomId, fileView);
+    }
+
+    return fileView;
   }
 
   async remove(request: Request, fileId: string) {
     const user = await this.getAuthenticatedUserFromRequest(request);
     const file = await this.getManageableFileById(user, fileId);
 
+    const fileRoomId = file.roomId;
+    const deletedFileId = file.id;
+
+    if (fileRoomId) {
+      this.roomsGateway.emitFileDeleted(fileRoomId, deletedFileId);
+    }
+
     await this.prismaService.projectFile.delete({
       where: { id: file.id },
-    });
-
-    await this.fileEventsService.createEvent({
-      fileId: file.id,
-      actorId: user.id,
-      type: FileEventType.FILE_DELETED,
-      payload: {
-        name: file.name,
-      },
     });
 
     return {
@@ -182,14 +194,20 @@ export class FilesService {
 
   async getAuthenticatedUserFromRequest(request: Request) {
     const session = await this.kratosService.getSession(request);
+    const user = await this.usersService.syncFromKratosIdentity(
+      session.identity,
+    );
 
-    return this.usersService.syncFromKratosIdentity(session.identity);
+    return this.usersService.ensureVerified(user);
   }
 
   async getAuthenticatedUserFromCookie(cookie?: string) {
     const session = await this.kratosService.getSessionFromCookie(cookie);
+    const user = await this.usersService.syncFromKratosIdentity(
+      session.identity,
+    );
 
-    return this.usersService.syncFromKratosIdentity(session.identity);
+    return this.usersService.ensureVerified(user);
   }
 
   private toFileView(file: ProjectFile) {
