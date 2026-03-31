@@ -11,6 +11,16 @@ enum UserRole {
   USER
 }
 
+model Room {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  ownerId   String
+  owner     User     @relation("RoomOwner", fields: [ownerId], references: [id])
+  users     User[]   @relation("RoomMembers")
+}
+
+
 model User {
   id               String   @id @default(cuid())
   kratosIdentityId String   @unique
@@ -21,4 +31,6 @@ model User {
   role             UserRole @default(USER)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  rooms    Room[]  @relation("RoomMembers")
+  ownedRooms       Room[]   @relation("RoomOwner")
 }
