@@ -10,6 +10,10 @@ export class KratosService {
   async getSession(request: Request): Promise<KratosWhoAmIResponse> {
     const cookie = request.headers.cookie;
 
+    return this.getSessionFromCookie(cookie);
+  }
+
+  async getSessionFromCookie(cookie?: string): Promise<KratosWhoAmIResponse> {
     if (!cookie) {
       throw new UnauthorizedException('No session cookie provided');
     }

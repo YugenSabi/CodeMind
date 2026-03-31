@@ -15,9 +15,12 @@
     "lint": "eslint \"src/**/*.ts\" --fix",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "start:collab": "ts-node src/hocuspocus-main.ts",
+    "start:collab:dev": "ts-node --transpile-only src/hocuspocus-main.ts"
   },
   "dependencies": {
+    "@hocuspocus/server": "^3.4.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -33,7 +36,8 @@
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "yjs": "^13.6.30"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

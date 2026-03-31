@@ -11,26 +11,94 @@ enum UserRole {
   USER
 }
 
-model Room {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  ownerId   String
-  owner     User     @relation("RoomOwner", fields: [ownerId], references: [id])
-  users     User[]   @relation("RoomMembers")
+enum FileLanguage {
+  PLAINTEXT
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  JSON
+  HTML
+  CSS
+  MARKDOWN
 }
 
+enum FileEventType {
+  FILE_CREATED
+  FILE_UPDATED
+  FILE_DELETED
+  FILE_OPENED
+  FILE_COLLABORATION_JOINED
+  FILE_COLLABORATION_LEFT
+  FILE_SNAPSHOT_STORED
+}
 
 model User {
-  id               String   @id @default(cuid())
-  kratosIdentityId String   @unique
-  email            String   @unique
-  isVerified       Boolean  @default(false)
+  id               String        @id @default(cuid())
+  kratosIdentityId String        @unique
+  email            String        @unique
+  isVerified       Boolean       @default(false)
   firstName        String?
   lastName         String?
-  role             UserRole @default(USER)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  rooms    Room[]  @relation("RoomMembers")
-  ownedRooms       Room[]   @relation("RoomOwner")
+  role             UserRole      @default(USER)
+  files            ProjectFile[]
+  fileEvents       FileEvent[]
+  ownedRooms       Room[]        @relation("RoomOwner")
+  rooms            Room[]        @relation("RoomMembers")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Room {
+  id        String        @id @default(cuid())
+  name      String
+  joinCode  String        @unique
+  ownerId   String
+  owner     User          @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  users     User[]        @relation("RoomMembers")
+  files     ProjectFile[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([ownerId])
+}
+
+model ProjectFile {
+  id        String        @id @default(cuid())
+  roomId    String?
+  ownerId   String
+  name      String
+  path      String?
+  language  FileLanguage  @default(PLAINTEXT)
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  room      Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  snapshot  FileSnapshot?
+  events    FileEvent[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([roomId])
+  @@index([ownerId])
+}
+
+model FileSnapshot {
+  id        String      @id @default(cuid())
+  fileId    String      @unique
+  file      ProjectFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  state     Bytes
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model FileEvent {
+  id        String        @id @default(cuid())
+  fileId    String
+  actorId   String?
+  type      FileEventType
+  payload   Json?
+  file      ProjectFile   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  actor     User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+
+  @@index([fileId, createdAt])
+  @@index([actorId])
 }

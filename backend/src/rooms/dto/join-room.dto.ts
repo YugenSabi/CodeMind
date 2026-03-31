@@ -1,3 +1,13 @@
+import { IsOptional, IsString, Length } from 'class-validator';
+
 export class JoinRoomDto {
-  userId: string; // id пользователя, который присоединяется
+  @IsOptional()
+  @IsString()
+  @Length(8, 8)
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(8, 8)
+  joinCode?: string;
 }
