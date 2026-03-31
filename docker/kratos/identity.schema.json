@@ -1,0 +1,44 @@
+{
+  "$id": "https://schemas.codemind.local/user.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodeMind User",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email",
+          "minLength": 3,
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            },
+            "verification": {
+              "via": "email"
+            },
+            "recovery": {
+              "via": "email"
+            }
+          }
+        },
+        "first_name": {
+          "type": "string",
+          "title": "First name",
+          "minLength": 1
+        },
+        "last_name": {
+          "type": "string",
+          "title": "Last name",
+          "minLength": 1
+        }
+      },
+      "required": ["email", "first_name", "last_name"],
+      "additionalProperties": false
+    }
+  }
+}
