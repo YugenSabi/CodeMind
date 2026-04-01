@@ -6,8 +6,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Sandbox } from '@e2b/code-interpreter';
 import { FileLanguage } from '@prisma/client';
+import * as path from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import ts from 'typescript';
+import * as Y from 'yjs';
 
 type TerminalUser = {
   id: string;
@@ -28,6 +30,29 @@ type TerminalResizeInput = {
   roomId: string;
   cols: number;
   rows: number;
+};
+
+type ExecutionPreparationResult = {
+  files: Array<{
+    path: string;
+    data: string;
+  }>;
+  command: string;
+};
+
+type ProjectSourceFile = {
+  id: string;
+  name: string;
+  directoryId: string | null;
+  language: FileLanguage;
+  content: string;
+};
+
+type ProjectExecutionFile = {
+  inputPath: string;
+  outputPath: string;
+  language: FileLanguage;
+  content: string;
 };
 
 @Injectable()
@@ -108,15 +133,19 @@ export class TerminalService {
       throw new InternalServerErrorException(this.resolveE2BError(error));
     });
 
-    const executionFiles = this.prepareExecutionFiles(
-      file.language,
-      input.content,
-    );
     const workspaceDir = '/home/user/codemind';
+    const executionFiles = await this.prepareExecutionFiles({
+      fileId: file.id,
+      roomId,
+      language: file.language,
+      content: input.content,
+    });
 
     await sandbox.files.write(
-      `${workspaceDir}/${executionFiles.codeFile.name}`,
-      executionFiles.codeFile.content,
+      executionFiles.files.map((fileToWrite) => ({
+        path: `${workspaceDir}/${fileToWrite.path}`,
+        data: fileToWrite.data,
+      })),
       { requestTimeoutMs },
     );
 
@@ -222,7 +251,91 @@ export class TerminalService {
     return true;
   }
 
-  private prepareExecutionFiles(language: FileLanguage, content: string) {
+  private async prepareExecutionFiles(input: {
+    fileId: string;
+    roomId: string;
+    language: FileLanguage;
+    content: string;
+  }): Promise<ExecutionPreparationResult> {
+    if (input.roomId && RUNNABLE_LANGUAGES.has(input.language)) {
+      return this.prepareProjectExecutionFiles(input);
+    }
+
+    return this.prepareSingleFileExecution(input.language, input.content);
+  }
+
+  private async prepareProjectExecutionFiles(input: {
+    fileId: string;
+    roomId: string;
+    language: FileLanguage;
+    content: string;
+  }): Promise<ExecutionPreparationResult> {
+    const [projectFiles, directories] = await Promise.all([
+      this.prismaService.projectFile.findMany({
+        where: {
+          roomId: input.roomId,
+        },
+        select: {
+          id: true,
+          name: true,
+          directoryId: true,
+          language: true,
+          snapshot: {
+            select: {
+              state: true,
+            },
+          },
+        },
+      }),
+      this.prismaService.projectDirectory.findMany({
+        where: {
+          roomId: input.roomId,
+        },
+        select: {
+          id: true,
+          name: true,
+          parentId: true,
+        },
+      }),
+    ]);
+
+    const directoryPathMap = this.buildDirectoryPathMap(directories);
+    const sourceFiles: ProjectSourceFile[] = projectFiles.map((file) => ({
+      id: file.id,
+      name: file.name,
+      directoryId: file.directoryId,
+      language: file.language,
+      content:
+        file.id === input.fileId
+          ? input.content
+          : this.readSnapshotContent(file.snapshot?.state),
+    }));
+    const executionFiles = sourceFiles.map((file) =>
+      this.buildProjectExecutionFile(file, directoryPathMap),
+    );
+    const entryFile = executionFiles.find(
+      (file) =>
+        file.inputPath ===
+        this.resolveEntryInputPath(input.fileId, sourceFiles, directoryPathMap),
+    );
+
+    if (!entryFile || !RUN_COMMANDS[input.language]) {
+      throw new BadRequestException('Entry file was not found in the project');
+    }
+
+    return {
+      files: executionFiles.map((file) => ({
+        path: file.outputPath,
+        data: file.content,
+      })),
+      command: `${RUN_COMMANDS[input.language]} ${this.quoteShellPath(entryFile.outputPath)}`,
+    };
+  }
+
+  private prepareSingleFileExecution(
+    language: FileLanguage,
+    content: string,
+  ): ExecutionPreparationResult {
     if (language === FileLanguage.TYPESCRIPT) {
       const transpiled = ts.transpileModule(content, {
         compilerOptions: {
@@ -232,35 +345,180 @@ export class TerminalService {
       });
 
       return {
-        codeFile: {
-          name: 'main.js',
-          content: transpiled.outputText,
-        },
+        files: [
+          {
+            path: 'main.js',
+            data: transpiled.outputText,
+          },
+        ],
         command: 'node main.js',
       };
     }
 
     if (language === FileLanguage.JAVASCRIPT) {
       return {
-        codeFile: {
-          name: 'main.js',
-          content,
-        },
+        files: [
+          {
+            path: 'main.js',
+            data: content,
+          },
+        ],
         command: 'node main.js',
       };
     }
 
     if (language === FileLanguage.PYTHON) {
       return {
-        codeFile: {
-          name: 'main.py',
-          content,
-        },
+        files: [
+          {
+            path: 'main.py',
+            data: content,
+          },
+        ],
         command: 'python -u main.py',
       };
     }
 
     throw new BadRequestException('This file type is not runnable');
+  }
+
+  private buildDirectoryPathMap(
+    directories: Array<{
+      id: string;
+      name: string;
+      parentId: string | null;
+    }>,
+  ) {
+    const byId = new Map(
+      directories.map((directory) => [directory.id, directory]),
+    );
+    const pathMap = new Map<string, string>();
+    const visiting = new Set<string>();
+
+    const resolvePath = (directoryId: string): string => {
+      const cached = pathMap.get(directoryId);
+      if (cached) {
+        return cached;
+      }
+
+      if (visiting.has(directoryId)) {
+        throw new BadRequestException('Invalid project directory structure');
+      }
+
+      const directory = byId.get(directoryId);
+      if (!directory) {
+        throw new BadRequestException('Directory was not found');
+      }
+
+      visiting.add(directoryId);
+
+      const normalizedName = this.normalizePathSegment(directory.name);
+      const resolvedPath = directory.parentId
+        ? path.posix.join(resolvePath(directory.parentId), normalizedName)
+        : normalizedName;
+
+      visiting.delete(directoryId);
+      pathMap.set(directoryId, resolvedPath);
+
+      return resolvedPath;
+    };
+
+    for (const directory of directories) {
+      resolvePath(directory.id);
+    }
+
+    return pathMap;
+  }
+
+  private buildFilePath(
+    file: {
+      name: string;
+      directoryId: string | null;
+    },
+    directoryPathMap: Map<string, string>,
+  ) {
+    const normalizedName = this.normalizePathSegment(file.name);
+
+    if (!file.directoryId) {
+      return normalizedName;
+    }
+
+    const directoryPath = directoryPathMap.get(file.directoryId);
+
+    if (!directoryPath) {
+      throw new BadRequestException('Directory path was not found');
+    }
+
+    return path.posix.join(directoryPath, normalizedName);
+  }
+
+  private resolveEntryInputPath(
+    fileId: string,
+    sourceFiles: ProjectSourceFile[],
+    directoryPathMap: Map<string, string>,
+  ) {
+    const entryFile = sourceFiles.find((file) => file.id === fileId);
+
+    if (!entryFile) {
+      throw new BadRequestException('Entry file was not found in the project');
+    }
+
+    return this.buildFilePath(entryFile, directoryPathMap);
+  }
+
+  private buildProjectExecutionFile(
+    file: ProjectSourceFile,
+    directoryPathMap: Map<string, string>,
+  ): ProjectExecutionFile {
+    const inputPath = this.buildFilePath(file, directoryPathMap);
+
+    if (file.language === FileLanguage.TYPESCRIPT) {
+      const transpiled = ts.transpileModule(file.content, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2020,
+        },
+        fileName: inputPath,
+      });
+
+      return {
+        inputPath,
+        outputPath: replaceExtension(inputPath, '.js'),
+        language: file.language,
+        content: transpiled.outputText,
+      };
+    }
+
+    return {
+      inputPath,
+      outputPath: inputPath,
+      language: file.language,
+      content: file.content,
+    };
+  }
+
+  private readSnapshotContent(state?: Uint8Array | Buffer | null) {
+    if (!state) {
+      return '';
+    }
+
+    const document = new Y.Doc();
+
+    try {
+      Y.applyUpdate(document, new Uint8Array(state));
+      const text = document.getText('content');
+      return text.toJSON();
+    } finally {
+      document.destroy();
+    }
+  }
+
+  private normalizePathSegment(segment: string) {
+    return segment.trim().replace(/[\\/]/g, '_');
+  }
+
+  private quoteShellPath(filePath: string) {
+    return `'${filePath.replace(/'/g, `'\\''`)}'`;
   }
 
   private resolveE2BError(error: unknown) {
@@ -282,4 +540,26 @@ export class TerminalService {
       error.message.toLowerCase().includes('not found')
     );
   }
+}
+
+const RUNNABLE_LANGUAGES = new Set<FileLanguage>([
+  FileLanguage.JAVASCRIPT,
+  FileLanguage.TYPESCRIPT,
+  FileLanguage.PYTHON,
+]);
+
+const RUN_COMMANDS: Partial<Record<FileLanguage, string>> = {
+  [FileLanguage.JAVASCRIPT]: 'node',
+  [FileLanguage.TYPESCRIPT]: 'node',
+  [FileLanguage.PYTHON]: 'python -u',
+};
+
+function replaceExtension(filePath: string, nextExtension: string) {
+  const extension = path.posix.extname(filePath);
+
+  if (!extension) {
+    return `${filePath}${nextExtension}`;
+  }
+
+  return `${filePath.slice(0, -extension.length)}${nextExtension}`;
 }

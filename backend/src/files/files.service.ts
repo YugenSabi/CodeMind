@@ -278,6 +278,48 @@ export class FilesService {
     };
   }
 
+  async removeDirectory(request: Request, directoryId: string) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const directory = await this.prismaService.projectDirectory.findUnique({
+      where: { id: directoryId },
+    });
+
+    if (!directory) {
+      throw new NotFoundException('Directory was not found');
+    }
+
+    await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+
+    const descendantDirectoryIds = await this.collectDescendantDirectoryIds(
+      directory.id,
+    );
+    const directoryIdsToDelete = [directory.id, ...descendantDirectoryIds];
+
+    await this.prismaService.$transaction(async (tx) => {
+      await tx.projectFile.deleteMany({
+        where: {
+          roomId: directory.roomId,
+          OR: [
+            { directoryId: directory.id },
+            { directoryId: { in: descendantDirectoryIds } },
+          ],
+        },
+      });
+
+      await tx.projectDirectory.deleteMany({
+        where: {
+          id: { in: directoryIdsToDelete },
+        },
+      });
+    });
+
+    await this.broadcastRoomTree(directory.roomId);
+
+    return {
+      success: true,
+    };
+  }
+
   async getAccessibleFileById(user: User, fileId: string) {
     const file = await this.prismaService.projectFile.findUnique({
       where: { id: fileId },
@@ -437,5 +479,34 @@ export class FilesService {
     const room = await this.roomsService.getRoomStateById(roomId);
 
     this.roomsGateway.emitRoomTreeUpdated(roomId, room);
+  }
+
+  private async collectDescendantDirectoryIds(directoryId: string) {
+    const descendants: string[] = [];
+    const queue = [directoryId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+
+      if (!currentId) {
+        continue;
+      }
+
+      const children = await this.prismaService.projectDirectory.findMany({
+        where: {
+          parentId: currentId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      for (const child of children) {
+        descendants.push(child.id);
+        queue.push(child.id);
+      }
+    }
+
+    return descendants;
   }
 }

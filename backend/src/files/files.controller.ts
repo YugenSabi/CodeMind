@@ -74,6 +74,11 @@ export class FilesController {
     return this.filesService.moveDirectory(request, id, moveDirectoryDto);
   }
 
+  @Delete('directories/:id')
+  removeDirectory(@Req() request: Request, @Param('id') id: string) {
+    return this.filesService.removeDirectory(request, id);
+  }
+
   @Delete(':id')
   remove(@Req() request: Request, @Param('id') id: string) {
     return this.filesService.remove(request, id);
