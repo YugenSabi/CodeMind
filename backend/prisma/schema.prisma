@@ -61,6 +61,7 @@ model User {
   isVerified       Boolean       @default(false)
   firstName        String?
   lastName         String?
+  avatarUrl        String?
   role             UserRole      @default(USER)
   files            ProjectFile[]
   fileEvents       FileEvent[]

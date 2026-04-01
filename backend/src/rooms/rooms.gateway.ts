@@ -18,6 +18,7 @@ type RoomSocketData = {
     email: string;
     firstName: string | null;
     lastName: string | null;
+    avatarUrl?: string | null;
     role: string;
   };
 };

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -25,6 +26,18 @@ export class RoomsService {
 
   async createRoom(request: Request, dto: CreateRoomDto) {
     const user = await this.getAuthenticatedUserFromRequest(request);
+    const ownedRoomsCount = await this.prisma.room.count({
+      where: {
+        ownerId: user.id,
+      },
+    });
+
+    if (ownedRoomsCount >= 2) {
+      throw new BadRequestException(
+        'Можно создать не более двух комнат на один аккаунт',
+      );
+    }
+
     const joinCode = await this.generateUniqueJoinCode();
 
     const room = await this.prisma.room.create({
@@ -241,6 +254,7 @@ export class RoomsService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
         role: user.role,
       },
     };
@@ -332,6 +346,7 @@ export class RoomsService {
         email: room.owner.email,
         firstName: room.owner.firstName,
         lastName: room.owner.lastName,
+        avatarUrl: room.owner.avatarUrl,
         role: room.owner.role,
       },
       users: room.users.map((user) => ({
@@ -339,6 +354,7 @@ export class RoomsService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
         role: user.role,
       })),
       files: room.files.map((file) => ({

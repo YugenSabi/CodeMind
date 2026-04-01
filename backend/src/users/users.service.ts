@@ -1,5 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { RoomMode, UserRole } from '@prisma/client';
 import type { UpdateMeDto } from '../auth/dto/update-me.dto';
 import type { KratosWhoAmIResponse } from '../kratos/kratos.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,6 +38,7 @@ export class UsersService {
             existingUserByIdentity.lastName ??
             identity.traits?.last_name ??
             null,
+          avatarUrl: existingUserByIdentity.avatarUrl ?? null,
         },
       });
     }
@@ -55,6 +60,7 @@ export class UsersService {
             null,
           lastName:
             existingUserByEmail.lastName ?? identity.traits?.last_name ?? null,
+          avatarUrl: existingUserByEmail.avatarUrl ?? null,
         },
       });
     }
@@ -67,6 +73,7 @@ export class UsersService {
           isVerified,
           firstName: identity.traits?.first_name ?? null,
           lastName: identity.traits?.last_name ?? null,
+          avatarUrl: null,
           role: UserRole.USER,
         },
       });
@@ -85,6 +92,7 @@ export class UsersService {
               concurrentUser.firstName ?? identity.traits?.first_name ?? null,
             lastName:
               concurrentUser.lastName ?? identity.traits?.last_name ?? null,
+            avatarUrl: concurrentUser.avatarUrl ?? null,
           },
         });
       }
@@ -106,15 +114,105 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, updateMeDto: UpdateMeDto) {
+    const avatarUrl = this.normalizeOptionalString(updateMeDto.avatarUrl);
+
+    this.validateAvatarUrl(avatarUrl);
+
     await this.prismaService.user.update({
       where: { id: userId },
       data: {
         firstName: this.normalizeOptionalString(updateMeDto.firstName),
         lastName: this.normalizeOptionalString(updateMeDto.lastName),
+        avatarUrl,
       },
     });
 
     return this.getProfileView(userId);
+  }
+
+  async getOwnProfile(userId: string) {
+    const user = await this.prismaService.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: {
+        ownedRooms: {
+          include: {
+            _count: {
+              select: {
+                users: true,
+                files: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      isVerified: user.isVerified,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      ownedRooms: user.ownedRooms.map((room) => ({
+        id: room.id,
+        name: room.name,
+        mode: room.mode,
+        createdAt: room.createdAt,
+        updatedAt: room.updatedAt,
+        membersCount: room._count.users,
+        filesCount: room._count.files,
+      })),
+    };
+  }
+
+  async getPublicProfile(userId: string) {
+    const user = await this.prismaService.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: {
+        ownedRooms: {
+          include: {
+            _count: {
+              select: {
+                users: true,
+                files: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+      rooms: user.ownedRooms.map((room) => ({
+        id: room.id,
+        name: room.name,
+        mode: room.mode,
+        createdAt: room.createdAt,
+        membersCount: room._count.users,
+        filesCount: room._count.files,
+      })),
+      stats: {
+        roomsCount: user.ownedRooms.length,
+        algorithmRoomsCount: user.ownedRooms.filter(
+          (room) => room.mode === RoomMode.ALGORITHMS,
+        ).length,
+      },
+    };
   }
 
   ensureVerified<T extends { isVerified: boolean }>(user: T) {
@@ -148,5 +246,26 @@ export class UsersService {
 
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
+  }
+
+  private validateAvatarUrl(value: string | null | undefined) {
+    if (!value) {
+      return;
+    }
+
+    const isHttpUrl =
+      value.startsWith('http://') || value.startsWith('https://');
+    const isImageDataUrl =
+      value.startsWith('data:image/') && value.includes(';base64,');
+
+    if (!isHttpUrl && !isImageDataUrl) {
+      throw new BadRequestException(
+        'Аватар должен быть ссылкой http/https или загруженным изображением',
+      );
+    }
+
+    if (isImageDataUrl && value.length > 500_000) {
+      throw new BadRequestException('Изображение слишком большое для аватарки');
+    }
   }
 }
