@@ -794,6 +794,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
             >
               {selectedFile ? (
                 <CollaborativeEditor
+                  room={room}
                   file={selectedFile}
                   user={user}
                   roomId={room.id}
