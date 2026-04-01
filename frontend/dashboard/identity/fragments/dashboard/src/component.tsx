@@ -3,7 +3,7 @@
 import { type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthSession } from '@lib/auth';
-import { createRoom } from '@lib/rooms';
+import { createRoom, type RoomMode } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -15,6 +15,7 @@ export function DashboardComponent(): ReactNode {
   const { requiresVerification, verificationMessage } = useAuthSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isModePickerOpen, setIsModePickerOpen] = useState(false);
 
   if (requiresVerification) {
     return (
@@ -25,7 +26,7 @@ export function DashboardComponent(): ReactNode {
     );
   }
 
-  const handleCreateRoom = async () => {
+  const handleCreateRoom = async (mode: RoomMode) => {
     if (isCreatingRoom) {
       return;
     }
@@ -36,8 +37,10 @@ export function DashboardComponent(): ReactNode {
 
       const room = await createRoom({
         name: 'CodeMind Room',
+        mode,
       });
 
+      setIsModePickerOpen(false);
       router.push(`/room/${room.id}`);
     } catch (error) {
       setErrorMessage(
@@ -66,9 +69,20 @@ export function DashboardComponent(): ReactNode {
       <HeroContent />
       <DashboardActions
         isCreatingRoom={isCreatingRoom}
+        isModePickerOpen={isModePickerOpen}
         errorMessage={errorMessage}
-        onCreateRoom={() => {
-          void handleCreateRoom();
+        onOpenModePicker={() => {
+          setIsModePickerOpen(true);
+        }}
+        onCloseModePicker={() => {
+          if (isCreatingRoom) {
+            return;
+          }
+
+          setIsModePickerOpen(false);
+        }}
+        onCreateRoom={(mode) => {
+          void handleCreateRoom(mode);
         }}
       />
     </Box>

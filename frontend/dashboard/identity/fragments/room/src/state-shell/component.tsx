@@ -22,9 +22,6 @@ export function StatusCard({
   return (
     <Box
       width="$full"
-      backgroundColor="$cardBg"
-      border="1px solid"
-      borderColor={tone === 'error' ? '#D14343' : '$border'}
       borderRadius={30}
       padding={24}
       flexDirection="column"

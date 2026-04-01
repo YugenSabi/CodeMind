@@ -6,6 +6,7 @@ import {
 import {
   FileEventType,
   FileLanguage,
+  RoomMode,
   type ProjectDirectory,
   type ProjectFile,
   type UserRole,
@@ -42,7 +43,12 @@ export class FilesService {
     const directoryId = this.normalizeOptionalString(createFileDto.directoryId);
 
     if (roomId) {
-      await this.ensureRoomAccess(user.id, roomId, user.role);
+      const room = await this.getAccessibleRoomContext(
+        user.id,
+        roomId,
+        user.role,
+      );
+      this.assertCanManageStructure(user, room);
     }
 
     if (directoryId) {
@@ -54,7 +60,12 @@ export class FilesService {
         throw new NotFoundException('Directory was not found');
       }
 
-      await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+      const room = await this.getAccessibleRoomContext(
+        user.id,
+        directory.roomId,
+        user.role,
+      );
+      this.assertCanManageStructure(user, room);
       roomId = directory.roomId;
     }
 
@@ -98,7 +109,12 @@ export class FilesService {
     const roomId = createDirectoryDto.roomId.trim();
     const parentId = this.normalizeOptionalString(createDirectoryDto.parentId);
 
-    await this.ensureRoomAccess(user.id, roomId, user.role);
+    const room = await this.getAccessibleRoomContext(
+      user.id,
+      roomId,
+      user.role,
+    );
+    this.assertCanManageStructure(user, room);
 
     if (parentId) {
       await this.getDirectoryInRoomOrThrow(parentId, roomId);
@@ -149,6 +165,14 @@ export class FilesService {
   async update(request: Request, fileId: string, updateFileDto: UpdateFileDto) {
     const user = await this.getAuthenticatedUserFromRequest(request);
     const file = await this.getManageableFileById(user, fileId);
+    if (file.roomId) {
+      const room = await this.getAccessibleRoomContext(
+        user.id,
+        file.roomId,
+        user.role,
+      );
+      this.assertCanManageStructure(user, room);
+    }
 
     const updated = await this.prismaService.projectFile.update({
       where: { id: file.id },
@@ -191,7 +215,12 @@ export class FilesService {
       throw new ForbiddenException('Only room files can be moved');
     }
 
-    await this.ensureRoomAccess(user.id, file.roomId, user.role);
+    const room = await this.getAccessibleRoomContext(
+      user.id,
+      file.roomId,
+      user.role,
+    );
+    this.assertCanManageStructure(user, room);
 
     const directoryId = this.normalizeOptionalString(moveFileDto.directoryId);
 
@@ -225,7 +254,12 @@ export class FilesService {
       throw new NotFoundException('Directory was not found');
     }
 
-    await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+    const room = await this.getAccessibleRoomContext(
+      user.id,
+      directory.roomId,
+      user.role,
+    );
+    this.assertCanManageStructure(user, room);
 
     const parentId = this.normalizeOptionalString(moveDirectoryDto.parentId);
 
@@ -257,6 +291,14 @@ export class FilesService {
   async remove(request: Request, fileId: string) {
     const user = await this.getAuthenticatedUserFromRequest(request);
     const file = await this.getManageableFileById(user, fileId);
+    if (file.roomId) {
+      const room = await this.getAccessibleRoomContext(
+        user.id,
+        file.roomId,
+        user.role,
+      );
+      this.assertCanManageStructure(user, room);
+    }
 
     const fileRoomId = file.roomId;
     const deletedFileId = file.id;
@@ -288,7 +330,12 @@ export class FilesService {
       throw new NotFoundException('Directory was not found');
     }
 
-    await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+    const room = await this.getAccessibleRoomContext(
+      user.id,
+      directory.roomId,
+      user.role,
+    );
+    this.assertCanManageStructure(user, room);
 
     const descendantDirectoryIds = await this.collectDescendantDirectoryIds(
       directory.id,
@@ -425,6 +472,72 @@ export class FilesService {
     if (!room) {
       throw new ForbiddenException('You do not have access to this room');
     }
+  }
+
+  private async getAccessibleRoomContext(
+    userId: string,
+    roomId: string,
+    role: UserRole,
+  ) {
+    if (role === 'ADMIN') {
+      const room = await this.prismaService.room.findUnique({
+        where: { id: roomId },
+        select: {
+          id: true,
+          ownerId: true,
+          mode: true,
+        },
+      });
+
+      if (!room) {
+        throw new NotFoundException('Room not found');
+      }
+
+      return room;
+    }
+
+    const room = await this.prismaService.room.findFirst({
+      where: {
+        id: roomId,
+        OR: [{ ownerId: userId }, { users: { some: { id: userId } } }],
+      },
+      select: {
+        id: true,
+        ownerId: true,
+        mode: true,
+      },
+    });
+
+    if (!room) {
+      throw new ForbiddenException('You do not have access to this room');
+    }
+
+    return room;
+  }
+
+  private assertCanManageStructure(
+    user: Pick<User, 'id' | 'role'>,
+    room: {
+      id: string;
+      ownerId: string;
+      mode: RoomMode;
+    },
+  ) {
+    if (user.role === 'ADMIN') {
+      return;
+    }
+
+    if (room.mode === RoomMode.JUST_CODING) {
+      return;
+    }
+
+    if (room.mode === RoomMode.INTERVIEWS && room.ownerId === user.id) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Room mode does not allow changing project structure',
+    );
   }
 
   private async getDirectoryInRoomOrThrow(directoryId: string, roomId: string) {

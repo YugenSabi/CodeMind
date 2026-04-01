@@ -13,6 +13,7 @@ type FileSidebarProps = {
   selectedFileId: string | null;
   currentUserId?: string;
   isOwner: boolean;
+  canManageStructure: boolean;
   isCreatingFile: boolean;
   deletingFileId: string | null;
   deletingDirectoryId: string | null;
@@ -49,6 +50,7 @@ export function FileSidebar({
   selectedFileId,
   currentUserId,
   isOwner,
+  canManageStructure,
   isCreatingFile,
   deletingFileId,
   deletingDirectoryId,
@@ -122,53 +124,63 @@ export function FileSidebar({
           </Text>
         </Box>
 
-        <Box alignItems="center" gap={6}>
-          <ActionButton
-            label="+"
-            icon={
-              <JsonIcon
-                width={14}
-                height={14}
-                style={{
-                  width: 14,
-                  height: 14,
-                  display: 'block',
-                  flexShrink: 0,
-                  color: '#FFFFFF',
-                }}
-              />
-            }
-            onClick={onCreateFile}
-            disabled={isCreatingFile}
-          />
-          <ActionButton
-            label="+"
-            icon={
-              <FolderIcon
-                width={14}
-                height={14}
-                style={{
-                  width: 14,
-                  height: 14,
-                  display: 'block',
-                  flexShrink: 0,
-                  color: '#FFFFFF',
-                }}
-              />
-            }
-            onClick={onCreateDirectory}
-          />
-        </Box>
+        {canManageStructure ? (
+          <Box alignItems="center" gap={6}>
+            <ActionButton
+              label="+"
+              icon={
+                <JsonIcon
+                  width={14}
+                  height={14}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    display: 'block',
+                    flexShrink: 0,
+                    color: '#FFFFFF',
+                  }}
+                />
+              }
+              onClick={onCreateFile}
+              disabled={isCreatingFile}
+            />
+            <ActionButton
+              label="+"
+              icon={
+                <FolderIcon
+                  width={14}
+                  height={14}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    display: 'block',
+                    flexShrink: 0,
+                    color: '#FFFFFF',
+                  }}
+                />
+              }
+              onClick={onCreateDirectory}
+            />
+          </Box>
+        ) : null}
       </Box>
 
       <Box flexDirection="column" gap={2}>
         <button
           type="button"
           onDragOver={(event) => {
+            if (!canManageStructure) {
+              return;
+            }
+
             event.preventDefault();
             handleActivateRootDrop();
           }}
           onDrop={(event) => {
+            if (!canManageStructure) {
+              return;
+            }
+
             event.preventDefault();
             handleDropToRoot();
           }}
@@ -217,6 +229,7 @@ export function FileSidebar({
             selectedFileId={selectedFileId}
             currentUserId={currentUserId}
             isOwner={isOwner}
+            canManageStructure={canManageStructure}
             deletingFileId={deletingFileId}
             deletingDirectoryId={deletingDirectoryId}
             expandedDirectoryIds={expandedDirectoryIds}
@@ -247,7 +260,10 @@ export function FileSidebar({
             <FileCard
               file={file}
               isActive={file.id === selectedFileId}
-              canDelete={isOwner || file.ownerId === currentUserId}
+              canDelete={
+                canManageStructure && (isOwner || file.ownerId === currentUserId)
+              }
+              canDrag={canManageStructure}
               isDeleting={deletingFileId === file.id}
               isDragging={dragState?.type === 'file' && dragState.id === file.id}
               onClick={() => {
@@ -272,9 +288,7 @@ export function FileSidebar({
       </Box>
 
       {files.length === 0 && directories.length === 0 ? (
-        <Box
-          padding={12}
-        >
+        <Box padding={12}>
           <Text color="#7D8793" font="$footer" size={12} lineHeight="18px">
             В комнате пока нет файлов и папок. Создайте первый элемент проекта, и он сразу откроется в редакторе.
           </Text>
@@ -326,6 +340,7 @@ function DirectoryNode({
   selectedFileId,
   currentUserId,
   isOwner,
+  canManageStructure,
   deletingFileId,
   deletingDirectoryId,
   expandedDirectoryIds,
@@ -346,6 +361,7 @@ function DirectoryNode({
   selectedFileId: string | null;
   currentUserId?: string;
   isOwner: boolean;
+  canManageStructure: boolean;
   deletingFileId: string | null;
   deletingDirectoryId: string | null;
   expandedDirectoryIds: string[];
@@ -370,7 +386,7 @@ function DirectoryNode({
       <Box width="$full" alignItems="center" gap={6} style={{ paddingRight: 4 }}>
         <button
           type="button"
-          draggable
+          draggable={canManageStructure}
           onClick={() => {
             onToggleDirectory(node.directory.id);
           }}
@@ -379,13 +395,17 @@ function DirectoryNode({
           }}
           onDragEnd={onEndDrag}
           onDragOver={(event) => {
+            if (!canManageStructure) {
+              return;
+            }
+
             event.preventDefault();
             onSetDropTarget(node.directory.id);
           }}
           onDrop={(event) => {
             event.preventDefault();
 
-            if (!dragState) {
+            if (!canManageStructure || !dragState) {
               return;
             }
 
@@ -404,7 +424,7 @@ function DirectoryNode({
             alignItems: 'center',
             gap: 8,
             paddingLeft: 10 + depth * 14,
-            paddingRight: 10,
+            paddingRight: canManageStructure ? 34 : 10,
             border: 'none',
             borderRadius: 10,
             background:
@@ -456,28 +476,32 @@ function DirectoryNode({
             {node.directory.name}
           </span>
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            onDeleteDirectory(node.directory);
-          }}
-          style={{
-            width: 18,
-            height: 18,
-            border: 'none',
-            borderRadius: 6,
-            background: 'transparent',
-            color: '#7D8793',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-            opacity: deletingDirectoryId === node.directory.id ? 0.7 : 1,
-          }}
-        >
-          {deletingDirectoryId === node.directory.id ? '...' : '×'}
-        </button>
+        {canManageStructure ? (
+          <button
+            type="button"
+            onClick={() => {
+              onDeleteDirectory(node.directory);
+            }}
+            style={{
+              width: 20,
+              height: 20,
+              border: 'none',
+              borderRadius: 8,
+              background: 'transparent',
+              color: '#7D8793',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              opacity: deletingDirectoryId === node.directory.id ? 0.7 : 1,
+            }}
+          >
+            <Text color="#7D8793" font="$footer" size={14} lineHeight="14px">
+              {deletingDirectoryId === node.directory.id ? '...' : '×'}
+            </Text>
+          </button>
+        ) : null}
       </Box>
 
       {isExpanded ? (
@@ -490,6 +514,7 @@ function DirectoryNode({
               selectedFileId={selectedFileId}
               currentUserId={currentUserId}
               isOwner={isOwner}
+              canManageStructure={canManageStructure}
               deletingFileId={deletingFileId}
               deletingDirectoryId={deletingDirectoryId}
               expandedDirectoryIds={expandedDirectoryIds}
@@ -512,7 +537,10 @@ function DirectoryNode({
               <FileCard
                 file={file}
                 isActive={file.id === selectedFileId}
-                canDelete={isOwner || file.ownerId === currentUserId}
+                canDelete={
+                  canManageStructure && (isOwner || file.ownerId === currentUserId)
+                }
+                canDrag={canManageStructure}
                 isDeleting={deletingFileId === file.id}
                 isDragging={dragState?.type === 'file' && dragState.id === file.id}
                 onClick={() => {

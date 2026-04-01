@@ -1,5 +1,7 @@
 import type { RoomDirectory, RoomFile } from '@lib/files';
 
+export type RoomMode = 'JUST_CODING' | 'INTERVIEWS' | 'ALGORITHMS';
+
 export type RoomParticipant = {
   id: string;
   email: string;
@@ -12,6 +14,7 @@ export type Room = {
   id: string;
   code: string;
   name: string;
+  mode: RoomMode;
   createdAt: string;
   updatedAt: string;
   owner: RoomParticipant;
@@ -39,6 +42,7 @@ export type RoomDashboardItem = {
 
 export type CreateRoomPayload = {
   name: string;
+  mode: RoomMode;
 };
 
 export type JoinRoomPayload = {

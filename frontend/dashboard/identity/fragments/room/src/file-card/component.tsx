@@ -18,6 +18,7 @@ type FileCardProps = {
   file: RoomFile;
   isActive: boolean;
   canDelete: boolean;
+  canDrag?: boolean;
   isDeleting: boolean;
   isDragging?: boolean;
   onClick: () => void;
@@ -30,6 +31,7 @@ export function FileCard({
   file,
   isActive,
   canDelete,
+  canDrag = true,
   isDeleting,
   isDragging = false,
   onClick,
@@ -47,7 +49,7 @@ export function FileCard({
         minHeight={0}
         padding={0}
         textColor="#FFFFFF"
-        draggable
+        draggable={canDrag}
         style={{ opacity: isDragging ? 0.48 : 1 }}
         onClick={onClick}
         onDragStart={onDragStart}

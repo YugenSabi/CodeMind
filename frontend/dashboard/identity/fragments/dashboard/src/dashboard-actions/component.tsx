@@ -1,17 +1,25 @@
 import { type ReactNode } from 'react';
+import type { RoomMode } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
+import { RoomModePicker } from '../room-mode-picker/component';
 
 type DashboardActionsProps = {
   isCreatingRoom: boolean;
+  isModePickerOpen: boolean;
   errorMessage: string | null;
-  onCreateRoom: () => void;
+  onOpenModePicker: () => void;
+  onCloseModePicker: () => void;
+  onCreateRoom: (mode: RoomMode) => void;
 };
 
 export function DashboardActions({
   isCreatingRoom,
+  isModePickerOpen,
   errorMessage,
+  onOpenModePicker,
+  onCloseModePicker,
   onCreateRoom,
 }: DashboardActionsProps): ReactNode {
   return (
@@ -27,7 +35,7 @@ export function DashboardActions({
           bg="#43953D"
           textColor="#FFFFFF"
           disabled={isCreatingRoom}
-          onClick={onCreateRoom}
+          onClick={onOpenModePicker}
         >
           <Text size={24}>
             {isCreatingRoom ? 'Создание...' : 'Создать комнату'}
@@ -49,6 +57,14 @@ export function DashboardActions({
         </Button>
       </Box>
 
+      {isModePickerOpen ? (
+        <RoomModePicker
+          isLoading={isCreatingRoom}
+          onClose={onCloseModePicker}
+          onSelectMode={onCreateRoom}
+        />
+      ) : null}
+
       {errorMessage ? (
         <Box
           width="$full"
@@ -62,7 +78,13 @@ export function DashboardActions({
           paddingBottom={12}
           paddingLeft={14}
         >
-          <Text color="#FFB4B4" font="$footer" size={14} lineHeight="20px" textAlign="center">
+          <Text
+            color="#FFB4B4"
+            font="$footer"
+            size={14}
+            lineHeight="20px"
+            textAlign="center"
+          >
             {errorMessage}
           </Text>
         </Box>

@@ -123,19 +123,48 @@ export function CreateFileModal({
             <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
               Язык
             </Text>
-            <select
-              value={language}
-              onChange={(event) => {
-                onLanguageChange(event.target.value as RoomFile['language']);
-              }}
-              style={getSelectStyles()}
-            >
-              {FILE_LANGUAGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Box position="relative" width="$full">
+              <select
+                value={language}
+                onChange={(event) => {
+                  onLanguageChange(event.target.value as RoomFile['language']);
+                }}
+                style={getSelectStyles()}
+              >
+                {FILE_LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <Box
+                position="absolute"
+                alignItems="center"
+                justifyContent="center"
+                style={{
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3 5.25L7 9.25L11 5.25"
+                    stroke="#D7DEE7"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Box>
+            </Box>
           </Box>
         ) : null}
 
@@ -206,10 +235,13 @@ function getSelectStyles() {
     border: '1px solid rgba(255,255,255,0.08)',
     background: '#0F141C',
     color: '#FFFFFF',
-    padding: '0 14px',
+    padding: '0 40px 0 14px',
     outline: 'none',
     fontSize: '14px',
     lineHeight: '18px',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    MozAppearance: 'none',
   } as const;
 }
 

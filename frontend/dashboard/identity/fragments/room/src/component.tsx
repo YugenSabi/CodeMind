@@ -349,10 +349,6 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     );
   }
 
-  const isOwner = Boolean(user && room && user.id === room.owner.id);
-  const selectedFile =
-    room?.files.find((file) => file.id === selectedFileId) ?? room?.files[0] ?? null;
-
   const confirmDeleteRoom = () => {
     if (!room || isDeletingRoom) {
       return;
@@ -520,7 +516,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   };
 
   const handleCreateFile = async () => {
-    if (!room || isCreatingFile) {
+    if (!room || isCreatingFile || !canManageStructure) {
       return;
     }
 
@@ -562,7 +558,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   };
 
   const handleCreateDirectory = async () => {
-    if (!room || isCreatingFile) {
+    if (!room || isCreatingFile || !canManageStructure) {
       return;
     }
 
@@ -601,6 +597,10 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   };
 
   const handleMoveFile = async (fileId: string, directoryId: string | null) => {
+    if (!canManageStructure) {
+      return;
+    }
+
     try {
       setErrorMessage(null);
 
@@ -631,6 +631,10 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     directoryId: string,
     parentId: string | null,
   ) => {
+    if (!canManageStructure) {
+      return;
+    }
+
     try {
       setErrorMessage(null);
 
@@ -693,6 +697,13 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     );
   }
 
+  const isOwner = Boolean(user && user.id === room.owner.id);
+  const canManageStructure =
+    room.mode === 'JUST_CODING' ||
+    (room.mode === 'INTERVIEWS' && isOwner);
+  const selectedFile =
+    room.files.find((file) => file.id === selectedFileId) ?? room.files[0] ?? null;
+
   return (
     <>
       <Box width="$full" flexDirection="column" gap={12}>
@@ -740,6 +751,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               selectedFileId={selectedFile?.id ?? null}
               currentUserId={user?.id}
               isOwner={isOwner}
+              canManageStructure={canManageStructure}
               isCreatingFile={isCreatingFile}
               deletingFileId={deletingFileId}
               deletingDirectoryId={deletingDirectoryId}

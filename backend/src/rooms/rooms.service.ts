@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FileEventType, type UserRole } from '@prisma/client';
+import {
+  FileEventType,
+  FileLanguage,
+  RoomMode,
+  type UserRole,
+} from '@prisma/client';
 import type { Request } from 'express';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,8 +31,20 @@ export class RoomsService {
       data: {
         name: dto.name.trim(),
         joinCode,
+        mode: dto.mode,
         ownerId: user.id,
         users: { connect: { id: user.id } },
+        ...(dto.mode === RoomMode.ALGORITHMS
+          ? {
+              files: {
+                create: {
+                  ownerId: user.id,
+                  name: 'solution.ts',
+                  language: FileLanguage.TYPESCRIPT,
+                },
+              },
+            }
+          : {}),
       },
       include: this.roomInclude,
     });
@@ -293,6 +310,7 @@ export class RoomsService {
       name: room.name,
       code: room.joinCode,
       joinCode: room.joinCode,
+      mode: room.mode,
       ownerId: room.ownerId,
       owner: {
         id: room.owner.id,
