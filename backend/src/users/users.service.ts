@@ -81,8 +81,10 @@ export class UsersService {
           data: {
             email,
             isVerified,
-            firstName: concurrentUser.firstName ?? identity.traits?.first_name ?? null,
-            lastName: concurrentUser.lastName ?? identity.traits?.last_name ?? null,
+            firstName:
+              concurrentUser.firstName ?? identity.traits?.first_name ?? null,
+            lastName:
+              concurrentUser.lastName ?? identity.traits?.last_name ?? null,
           },
         });
       }

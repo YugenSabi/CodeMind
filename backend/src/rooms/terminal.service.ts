@@ -59,14 +59,19 @@ export class TerminalService {
     });
 
     if (!file || file.roomId !== roomId) {
-      throw new BadRequestException('File does not belong to the selected room');
+      throw new BadRequestException(
+        'File does not belong to the selected room',
+      );
     }
 
     if (input.user.role !== 'ADMIN') {
       const room = await this.prismaService.room.findFirst({
         where: {
           id: roomId,
-          OR: [{ ownerId: input.user.id }, { users: { some: { id: input.user.id } } }],
+          OR: [
+            { ownerId: input.user.id },
+            { users: { some: { id: input.user.id } } },
+          ],
         },
         select: { id: true },
       });
@@ -103,7 +108,10 @@ export class TerminalService {
       throw new InternalServerErrorException(this.resolveE2BError(error));
     });
 
-    const executionFiles = this.prepareExecutionFiles(file.language, input.content);
+    const executionFiles = this.prepareExecutionFiles(
+      file.language,
+      input.content,
+    );
     const workspaceDir = '/home/user/codemind';
 
     await sandbox.files.write(

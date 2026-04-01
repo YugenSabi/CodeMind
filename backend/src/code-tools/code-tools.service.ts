@@ -19,7 +19,8 @@ export class CodeToolsService {
   ) {}
 
   async run(request: Request, runCodeDto: RunCodeDto) {
-    const user = await this.filesService.getAuthenticatedUserFromRequest(request);
+    const user =
+      await this.filesService.getAuthenticatedUserFromRequest(request);
     const file = await this.filesService.getAccessibleFileById(
       user,
       runCodeDto.fileId,
@@ -70,7 +71,11 @@ export class CodeToolsService {
       }
 
       const workspaceDir = '/home/user/codemind';
-      const executionFiles = this.prepareExecutionFiles(language, content, stdin);
+      const executionFiles = this.prepareExecutionFiles(
+        language,
+        content,
+        stdin,
+      );
 
       await sandbox.files.write(
         [
@@ -198,7 +203,10 @@ export class CodeToolsService {
 
   private stripTerminalNoise(output: string) {
     return output
-      .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+      .replace(
+        new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Za-z]`, 'g'),
+        '',
+      )
       .replace(/\r/g, '')
       .trim();
   }

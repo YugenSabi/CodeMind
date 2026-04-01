@@ -1,15 +1,18 @@
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-export class RunCodeDto {
+export class CreateDirectoryDto {
   @IsString()
   @MinLength(1)
   @MaxLength(255)
-  fileId!: string;
+  name!: string;
 
   @IsString()
-  content!: string;
+  @MinLength(1)
+  @MaxLength(255)
+  roomId!: string;
 
   @IsOptional()
   @IsString()
-  stdin?: string;
+  @MaxLength(255)
+  parentId?: string | null;
 }

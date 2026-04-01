@@ -31,4 +31,10 @@ export class CreateFileDto {
   @IsString()
   @MaxLength(255)
   roomId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  directoryId?: string | null;
 }

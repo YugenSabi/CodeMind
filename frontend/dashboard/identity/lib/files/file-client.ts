@@ -1,10 +1,24 @@
-import type { CreateFilePayload, RoomFile } from './file-types';
+import type {
+  CreateDirectoryPayload,
+  CreateFilePayload,
+  RoomDirectory,
+  RoomFile,
+} from './file-types';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
 
 export async function createFile(payload: CreateFilePayload): Promise<RoomFile> {
   return request<RoomFile>('/files', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createDirectory(
+  payload: CreateDirectoryPayload,
+): Promise<RoomDirectory> {
+  return request<RoomDirectory>('/files/directories', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -24,6 +38,40 @@ export async function deleteFile(fileId: string): Promise<{ success: boolean }> 
   return request<{ success: boolean }>(`/files/${encodeURIComponent(fileId)}`, {
     method: 'DELETE',
   });
+}
+
+export async function moveFile(
+  fileId: string,
+  directoryId: string | null,
+): Promise<RoomFile> {
+  return request<RoomFile>(`/files/${encodeURIComponent(fileId)}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify({ directoryId }),
+  });
+}
+
+export async function moveDirectory(
+  directoryId: string,
+  parentId: string | null,
+): Promise<RoomDirectory> {
+  return request<RoomDirectory>(
+    `/files/directories/${encodeURIComponent(directoryId)}/move`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ parentId }),
+    },
+  );
+}
+
+export async function deleteDirectory(
+  directoryId: string,
+): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(
+    `/files/directories/${encodeURIComponent(directoryId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
 }
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {

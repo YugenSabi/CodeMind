@@ -39,6 +39,11 @@ export class RoomsController {
     return this.roomsService.getRoomFiles(request, id);
   }
 
+  @Get(':id/dashboard')
+  getRoomDashboard(@Req() request: Request, @Param('id') id: string) {
+    return this.roomsService.getRoomDashboard(request, id);
+  }
+
   @Delete(':id/members/:participantId')
   removeParticipant(
     @Req() request: Request,

@@ -1,14 +1,14 @@
 import { type ReactNode } from 'react';
 import type { RoomFile } from '@lib/files';
 import {
-  BrandLogo as PlainTextIcon,
-  BrandTitle as CssIcon,
-  GithubLogo as HtmlIcon,
-  GoogleLogo as MarkdownIcon,
-  Menu as PythonIcon,
-  NotificationIcon as TypeScriptIcon,
-  RadioCircle as JsonIcon,
-  UserIcon as JavaScriptIcon,
+  CssIcon,
+  HtmlIcon,
+  JsIcon as JavaScriptIcon,
+  JsonIcon,
+  MdIcon as MarkdownIcon,
+  PyIcon as PythonIcon,
+  TextIcon as PlainTextIcon,
+  TsIcon as TypeScriptIcon,
 } from '@ui/icons';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -19,8 +19,11 @@ type FileCardProps = {
   isActive: boolean;
   canDelete: boolean;
   isDeleting: boolean;
+  isDragging?: boolean;
   onClick: () => void;
   onDelete: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 };
 
 export function FileCard({
@@ -28,8 +31,11 @@ export function FileCard({
   isActive,
   canDelete,
   isDeleting,
+  isDragging = false,
   onClick,
   onDelete,
+  onDragStart,
+  onDragEnd,
 }: FileCardProps): ReactNode {
   return (
     <Box width="$full" position="relative">
@@ -41,7 +47,11 @@ export function FileCard({
         minHeight={0}
         padding={0}
         textColor="#FFFFFF"
+        draggable
+        style={{ opacity: isDragging ? 0.48 : 1 }}
         onClick={onClick}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
       >
         <Box
           width="$full"

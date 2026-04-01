@@ -1,4 +1,4 @@
-import type { RoomFile } from '@lib/files';
+import type { RoomDirectory, RoomFile } from '@lib/files';
 
 export type RoomParticipant = {
   id: string;
@@ -17,6 +17,7 @@ export type Room = {
   owner: RoomParticipant;
   users: RoomParticipant[];
   files: RoomFile[];
+  directories: RoomDirectory[];
 };
 
 export type RoomDashboardItem = {

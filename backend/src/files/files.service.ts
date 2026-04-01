@@ -6,6 +6,7 @@ import {
 import {
   FileEventType,
   FileLanguage,
+  type ProjectDirectory,
   type ProjectFile,
   type UserRole,
   type User,
@@ -15,9 +16,13 @@ import { FileEventsService } from '../file-events/file-events.service';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoomsGateway } from '../rooms/rooms.gateway';
+import { RoomsService } from '../rooms/rooms.service';
 import { UsersService } from '../users/users.service';
+import { CreateDirectoryDto } from './dto/create-directory.dto';
 import { CreateFileDto } from './dto/create-file.dto';
 import { ListFilesQueryDto } from './dto/list-files-query.dto';
+import { MoveDirectoryDto } from './dto/move-directory.dto';
+import { MoveFileDto } from './dto/move-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 
 @Injectable()
@@ -28,20 +33,36 @@ export class FilesService {
     private readonly kratosService: KratosService,
     private readonly usersService: UsersService,
     private readonly roomsGateway: RoomsGateway,
+    private readonly roomsService: RoomsService,
   ) {}
 
   async create(request: Request, createFileDto: CreateFileDto) {
     const user = await this.getAuthenticatedUserFromRequest(request);
-    const roomId = this.normalizeOptionalString(createFileDto.roomId);
+    let roomId = this.normalizeOptionalString(createFileDto.roomId);
+    const directoryId = this.normalizeOptionalString(createFileDto.directoryId);
 
     if (roomId) {
       await this.ensureRoomAccess(user.id, roomId, user.role);
+    }
+
+    if (directoryId) {
+      const directory = await this.prismaService.projectDirectory.findUnique({
+        where: { id: directoryId },
+      });
+
+      if (!directory) {
+        throw new NotFoundException('Directory was not found');
+      }
+
+      await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+      roomId = directory.roomId;
     }
 
     const file = await this.prismaService.projectFile.create({
       data: {
         ownerId: user.id,
         roomId,
+        directoryId,
         name: createFileDto.name.trim(),
         path: this.normalizeOptionalString(createFileDto.path),
         language: createFileDto.language ?? FileLanguage.PLAINTEXT,
@@ -63,9 +84,37 @@ export class FilesService {
 
     if (file.roomId) {
       this.roomsGateway.emitFileCreated(file.roomId, fileView);
+      await this.broadcastRoomTree(file.roomId);
     }
 
     return fileView;
+  }
+
+  async createDirectory(
+    request: Request,
+    createDirectoryDto: CreateDirectoryDto,
+  ) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const roomId = createDirectoryDto.roomId.trim();
+    const parentId = this.normalizeOptionalString(createDirectoryDto.parentId);
+
+    await this.ensureRoomAccess(user.id, roomId, user.role);
+
+    if (parentId) {
+      await this.getDirectoryInRoomOrThrow(parentId, roomId);
+    }
+
+    const directory = await this.prismaService.projectDirectory.create({
+      data: {
+        roomId,
+        parentId,
+        name: createDirectoryDto.name.trim(),
+      },
+    });
+
+    await this.broadcastRoomTree(roomId);
+
+    return this.toDirectoryView(directory);
   }
 
   async list(request: Request, query: ListFilesQueryDto) {
@@ -128,9 +177,81 @@ export class FilesService {
 
     if (updated.roomId) {
       this.roomsGateway.emitFileUpdated(updated.roomId, fileView);
+      await this.broadcastRoomTree(updated.roomId);
     }
 
     return fileView;
+  }
+
+  async move(request: Request, fileId: string, moveFileDto: MoveFileDto) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const file = await this.getAccessibleFileById(user, fileId);
+
+    if (!file.roomId) {
+      throw new ForbiddenException('Only room files can be moved');
+    }
+
+    await this.ensureRoomAccess(user.id, file.roomId, user.role);
+
+    const directoryId = this.normalizeOptionalString(moveFileDto.directoryId);
+
+    if (directoryId) {
+      await this.getDirectoryInRoomOrThrow(directoryId, file.roomId);
+    }
+
+    const movedFile = await this.prismaService.projectFile.update({
+      where: { id: file.id },
+      data: {
+        directoryId,
+      },
+    });
+
+    await this.broadcastRoomTree(file.roomId);
+
+    return this.toFileView(movedFile);
+  }
+
+  async moveDirectory(
+    request: Request,
+    directoryId: string,
+    moveDirectoryDto: MoveDirectoryDto,
+  ) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const directory = await this.prismaService.projectDirectory.findUnique({
+      where: { id: directoryId },
+    });
+
+    if (!directory) {
+      throw new NotFoundException('Directory was not found');
+    }
+
+    await this.ensureRoomAccess(user.id, directory.roomId, user.role);
+
+    const parentId = this.normalizeOptionalString(moveDirectoryDto.parentId);
+
+    if (parentId === directory.id) {
+      throw new ForbiddenException('Directory cannot be moved into itself');
+    }
+
+    if (parentId) {
+      const parentDirectory = await this.getDirectoryInRoomOrThrow(
+        parentId,
+        directory.roomId,
+      );
+
+      await this.ensureDirectoryIsNotDescendant(directory, parentDirectory);
+    }
+
+    const movedDirectory = await this.prismaService.projectDirectory.update({
+      where: { id: directory.id },
+      data: {
+        parentId,
+      },
+    });
+
+    await this.broadcastRoomTree(directory.roomId);
+
+    return this.toDirectoryView(movedDirectory);
   }
 
   async remove(request: Request, fileId: string) {
@@ -147,6 +268,10 @@ export class FilesService {
     await this.prismaService.projectFile.delete({
       where: { id: file.id },
     });
+
+    if (fileRoomId) {
+      await this.broadcastRoomTree(fileRoomId);
+    }
 
     return {
       success: true,
@@ -214,6 +339,7 @@ export class FilesService {
     return {
       id: file.id,
       roomId: file.roomId,
+      directoryId: file.directoryId,
       ownerId: file.ownerId,
       name: file.name,
       path: file.path,
@@ -257,5 +383,59 @@ export class FilesService {
     if (!room) {
       throw new ForbiddenException('You do not have access to this room');
     }
+  }
+
+  private async getDirectoryInRoomOrThrow(directoryId: string, roomId: string) {
+    const directory = await this.prismaService.projectDirectory.findFirst({
+      where: {
+        id: directoryId,
+        roomId,
+      },
+    });
+
+    if (!directory) {
+      throw new NotFoundException('Directory was not found');
+    }
+
+    return directory;
+  }
+
+  private async ensureDirectoryIsNotDescendant(
+    sourceDirectory: ProjectDirectory,
+    candidateParent: ProjectDirectory,
+  ) {
+    let currentParentId = candidateParent.parentId;
+
+    while (currentParentId) {
+      if (currentParentId === sourceDirectory.id) {
+        throw new ForbiddenException(
+          'Directory cannot be moved into a nested child',
+        );
+      }
+
+      const nextParent = await this.prismaService.projectDirectory.findUnique({
+        where: { id: currentParentId },
+        select: { parentId: true },
+      });
+
+      currentParentId = nextParent?.parentId ?? null;
+    }
+  }
+
+  private toDirectoryView(directory: ProjectDirectory) {
+    return {
+      id: directory.id,
+      roomId: directory.roomId,
+      parentId: directory.parentId,
+      name: directory.name,
+      createdAt: directory.createdAt,
+      updatedAt: directory.updatedAt,
+    };
+  }
+
+  private async broadcastRoomTree(roomId: string) {
+    const room = await this.roomsService.getRoomStateById(roomId);
+
+    this.roomsGateway.emitRoomTreeUpdated(roomId, room);
   }
 }

@@ -55,6 +55,7 @@ model Room {
   ownerId   String
   owner     User          @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   users     User[]        @relation("RoomMembers")
+  directories ProjectDirectory[]
   files     ProjectFile[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -62,14 +63,32 @@ model Room {
   @@index([ownerId])
 }
 
+model ProjectDirectory {
+  id        String             @id @default(cuid())
+  roomId    String
+  parentId  String?
+  name      String
+  room      Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  parent    ProjectDirectory?  @relation("DirectoryChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  ProjectDirectory[] @relation("DirectoryChildren")
+  files     ProjectFile[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([roomId])
+  @@index([parentId])
+}
+
 model ProjectFile {
   id        String        @id @default(cuid())
   roomId    String?
+  directoryId String?
   ownerId   String
   name      String
   path      String?
   language  FileLanguage  @default(PLAINTEXT)
   owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  directory ProjectDirectory? @relation(fields: [directoryId], references: [id], onDelete: SetNull)
   room      Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
   snapshot  FileSnapshot?
   events    FileEvent[]
@@ -77,6 +96,7 @@ model ProjectFile {
   updatedAt DateTime      @updatedAt
 
   @@index([roomId])
+  @@index([directoryId])
   @@index([ownerId])
 }
 

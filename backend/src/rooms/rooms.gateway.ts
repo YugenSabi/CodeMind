@@ -150,6 +150,13 @@ export class RoomsGateway implements OnGatewayDisconnect {
     });
   }
 
+  emitRoomTreeUpdated(roomId: string, room: unknown) {
+    this.server.to(roomId).emit('room:tree_updated', {
+      roomId,
+      room,
+    });
+  }
+
   @SubscribeMessage('terminal:start')
   async handleTerminalStart(
     @MessageBody()
@@ -164,7 +171,11 @@ export class RoomsGateway implements OnGatewayDisconnect {
   ) {
     const socketData = client.data as RoomSocketData;
 
-    if (!socketData.roomId || socketData.roomId !== data.roomId || !socketData.user) {
+    if (
+      !socketData.roomId ||
+      socketData.roomId !== data.roomId ||
+      !socketData.user
+    ) {
       throw new WsException('Join the room before starting terminal');
     }
 

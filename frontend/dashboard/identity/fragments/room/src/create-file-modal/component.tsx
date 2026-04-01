@@ -5,8 +5,9 @@ import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
 type CreateFileModalProps = {
+  itemType: 'file' | 'directory';
   fileName: string;
-  fileExtension: string;
+  fileExtension?: string;
   language: RoomFile['language'];
   isLoading: boolean;
   onNameChange: (value: string) => void;
@@ -16,6 +17,7 @@ type CreateFileModalProps = {
 };
 
 export function CreateFileModal({
+  itemType,
   fileName,
   fileExtension,
   language,
@@ -25,6 +27,8 @@ export function CreateFileModal({
   onCancel,
   onConfirm,
 }: CreateFileModalProps): ReactNode {
+  const isDirectory = itemType === 'directory';
+
   return (
     <Box
       position="fixed"
@@ -53,16 +57,18 @@ export function CreateFileModal({
       >
         <Box flexDirection="column" gap={6}>
           <Text color="#FFFFFF" font="$rus" size={24} lineHeight="28px">
-            Создать файл
+            {isDirectory ? 'Создать папку' : 'Создать файл'}
           </Text>
           <Text color="#7D8793" font="$footer" size={13} lineHeight="18px">
-            Укажите имя и язык файла для комнаты.
+            {isDirectory
+              ? 'Укажите название директории для комнаты.'
+              : 'Укажите имя и язык файла для комнаты.'}
           </Text>
         </Box>
 
         <Box flexDirection="column" gap={8}>
           <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
-            Имя файла
+            {isDirectory ? 'Название папки' : 'Имя файла'}
           </Text>
           <Box
             alignItems="center"
@@ -79,51 +85,59 @@ export function CreateFileModal({
             <input
               value={fileName}
               onChange={(event) => {
-                onNameChange(stripFileExtension(event.target.value));
+                onNameChange(
+                  isDirectory
+                    ? event.target.value
+                    : stripFileExtension(event.target.value),
+                );
               }}
-              placeholder="Например, main"
+              placeholder={isDirectory ? 'Например, components' : 'Например, main'}
               style={{
                 ...getModalFieldStyles(),
                 flex: 1,
               }}
             />
-            <Box
-              minWidth={58}
-              height={34}
-              border="1px solid"
-              borderColor="rgba(255,255,255,0.06)"
-              borderRadius={9}
-              alignItems="center"
-              justifyContent="center"
-              paddingLeft={10}
-              paddingRight={10}
-              backgroundColor="#171D26"
-            >
-              <Text color="#8C97A4" font="$footer" size={12} lineHeight="14px">
-                {fileExtension || 'txt'}
-              </Text>
-            </Box>
+            {!isDirectory ? (
+              <Box
+                minWidth={58}
+                height={34}
+                border="1px solid"
+                borderColor="rgba(255,255,255,0.06)"
+                borderRadius={9}
+                alignItems="center"
+                justifyContent="center"
+                paddingLeft={10}
+                paddingRight={10}
+                backgroundColor="#171D26"
+              >
+                <Text color="#8C97A4" font="$footer" size={12} lineHeight="14px">
+                  {fileExtension || 'txt'}
+                </Text>
+              </Box>
+            ) : null}
           </Box>
         </Box>
 
-        <Box flexDirection="column" gap={8}>
-          <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
-            Язык
-          </Text>
-          <select
-            value={language}
-            onChange={(event) => {
-              onLanguageChange(event.target.value as RoomFile['language']);
-            }}
-            style={getSelectStyles()}
-          >
-            {FILE_LANGUAGE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Box>
+        {!isDirectory ? (
+          <Box flexDirection="column" gap={8}>
+            <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
+              Язык
+            </Text>
+            <select
+              value={language}
+              onChange={(event) => {
+                onLanguageChange(event.target.value as RoomFile['language']);
+              }}
+              style={getSelectStyles()}
+            >
+              {FILE_LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Box>
+        ) : null}
 
         <Box
           justifyContent="flex-end"
@@ -161,7 +175,7 @@ export function CreateFileModal({
             onClick={onConfirm}
           >
             <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-              {isLoading ? 'Создание...' : 'Создать'}
+              {isLoading ? 'Создание...' : isDirectory ? 'Создать папку' : 'Создать'}
             </Text>
           </Button>
         </Box>

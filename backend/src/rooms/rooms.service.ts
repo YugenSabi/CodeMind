@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { UserRole } from '@prisma/client';
+import { FileEventType, type UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +42,19 @@ export class RoomsService {
     return this.toRoomView(room);
   }
 
+  async getRoomStateById(roomId: string) {
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      include: this.roomInclude,
+    });
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    return this.toRoomView(room);
+  }
+
   async addUserToRoomByCode(request: Request, joinCode: string) {
     const user = await this.getAuthenticatedUserFromRequest(request);
     const room = await this.prisma.room.findUnique({
@@ -70,6 +83,7 @@ export class RoomsService {
     return room.files.map((file) => ({
       id: file.id,
       roomId: file.roomId,
+      directoryId: file.directoryId,
       ownerId: file.ownerId,
       name: file.name,
       path: file.path,
@@ -77,6 +91,66 @@ export class RoomsService {
       documentName: `file:${file.id}`,
       createdAt: file.createdAt,
       updatedAt: file.updatedAt,
+    }));
+  }
+
+  async getRoomDashboard(request: Request, roomId: string) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const room = await this.getAccessibleRoomById(user.id, roomId, user.role);
+
+    const events = await this.prisma.fileEvent.findMany({
+      where: {
+        file: {
+          roomId: room.id,
+        },
+        type: {
+          in: [
+            FileEventType.FILE_CREATED,
+            FileEventType.FILE_UPDATED,
+            FileEventType.FILE_COLLABORATION_JOINED,
+          ],
+        },
+      },
+      include: {
+        actor: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        file: {
+          select: {
+            id: true,
+            name: true,
+            language: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 30,
+    });
+
+    return events.map((event) => ({
+      id: event.id,
+      type: event.type,
+      createdAt: event.createdAt,
+      actor: event.actor
+        ? {
+            id: event.actor.id,
+            email: event.actor.email,
+            firstName: event.actor.firstName,
+            lastName: event.actor.lastName,
+          }
+        : null,
+      file: {
+        id: event.file.id,
+        name: event.file.name,
+        language: event.file.language,
+      },
     }));
   }
 
@@ -237,6 +311,7 @@ export class RoomsService {
       files: room.files.map((file) => ({
         id: file.id,
         roomId: file.roomId,
+        directoryId: file.directoryId,
         ownerId: file.ownerId,
         name: file.name,
         path: file.path,
@@ -244,6 +319,14 @@ export class RoomsService {
         documentName: `file:${file.id}`,
         createdAt: file.createdAt,
         updatedAt: file.updatedAt,
+      })),
+      directories: room.directories.map((directory) => ({
+        id: directory.id,
+        roomId: directory.roomId,
+        parentId: directory.parentId,
+        name: directory.name,
+        createdAt: directory.createdAt,
+        updatedAt: directory.updatedAt,
       })),
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
@@ -256,6 +339,11 @@ export class RoomsService {
     files: {
       orderBy: {
         updatedAt: 'desc' as const,
+      },
+    },
+    directories: {
+      orderBy: {
+        name: 'asc' as const,
       },
     },
   };

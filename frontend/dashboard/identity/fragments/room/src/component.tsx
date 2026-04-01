@@ -3,7 +3,16 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthSession } from '@lib/auth';
-import { createFile, deleteFile, type RoomFile } from '@lib/files';
+import {
+  createDirectory,
+  createFile,
+  deleteDirectory,
+  deleteFile,
+  type RoomDirectory,
+  moveDirectory,
+  moveFile,
+  type RoomFile,
+} from '@lib/files';
 import {
   connectRoomSocket,
   deleteRoom,
@@ -47,6 +56,10 @@ type ConfirmState =
       type: 'delete-file';
       file: RoomFile;
     }
+  | {
+      type: 'delete-directory';
+      directory: RoomDirectory;
+    }
   | null;
 
 export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
@@ -63,6 +76,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
+  const [createItemType, setCreateItemType] = useState<'file' | 'directory'>('file');
   const [newFileBaseName, setNewFileBaseName] = useState('');
   const [newFileLanguage, setNewFileLanguage] =
     useState<RoomFile['language']>('TYPESCRIPT');
@@ -71,6 +85,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     null,
   );
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [deletingDirectoryId, setDeletingDirectoryId] = useState<string | null>(
+    null,
+  );
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [isRoomCodeCopied, setIsRoomCodeCopied] = useState(false);
   const [dashboardItems, setDashboardItems] = useState<RoomDashboardItem[]>([]);
@@ -220,6 +237,25 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       );
     });
 
+    socket.on('room:tree_updated', (payload: { room?: Room }) => {
+      const nextRoom = payload.room;
+
+      if (!nextRoom) {
+        return;
+      }
+
+      setRoom(nextRoom);
+      setSelectedFileId((current) => {
+        if (!current) {
+          return nextRoom.files[0]?.id ?? null;
+        }
+
+        return nextRoom.files.some((file) => file.id === current)
+          ? current
+          : nextRoom.files[0]?.id ?? null;
+      });
+    });
+
     return () => {
       setRoomSocket(null);
       disconnectRoomSocket(socket);
@@ -347,6 +383,17 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     });
   };
 
+  const confirmDeleteDirectory = (directory: RoomDirectory) => {
+    if (deletingDirectoryId) {
+      return;
+    }
+
+    setConfirmState({
+      type: 'delete-directory',
+      directory,
+    });
+  };
+
   const handleCopyRoomCode = async () => {
     if (!room?.code) {
       return;
@@ -428,6 +475,27 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       return;
     }
 
+    if (confirmState.type === 'delete-directory') {
+      try {
+        setDeletingDirectoryId(confirmState.directory.id);
+        setErrorMessage(null);
+
+        await deleteDirectory(confirmState.directory.id);
+        setConfirmState(null);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'Не удалось удалить папку. Попробуйте еще раз.',
+        );
+        setConfirmState(null);
+      } finally {
+        setDeletingDirectoryId(null);
+      }
+
+      return;
+    }
+
     try {
       setRemovingParticipantId(confirmState.participant.id);
       setErrorMessage(null);
@@ -479,6 +547,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       });
       setSelectedFileId(nextFile.id);
       setIsCreateFileModalOpen(false);
+      setCreateItemType('file');
       setNewFileBaseName(buildNextFileBaseName(room.files));
       setNewFileLanguage('TYPESCRIPT');
     } catch (error) {
@@ -489,6 +558,102 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       );
     } finally {
       setIsCreatingFile(false);
+    }
+  };
+
+  const handleCreateDirectory = async () => {
+    if (!room || isCreatingFile) {
+      return;
+    }
+
+    const normalizedName = newFileBaseName.trim();
+
+    if (!normalizedName) {
+      setErrorMessage('Введите название папки');
+      return;
+    }
+
+    try {
+      setIsCreatingFile(true);
+      setErrorMessage(null);
+
+      const nextDirectory = await createDirectory({
+        roomId: room.id,
+        name: normalizedName,
+      });
+
+      setRoom({
+        ...room,
+        directories: [...room.directories, nextDirectory],
+      });
+      setIsCreateFileModalOpen(false);
+      setCreateItemType('file');
+      setNewFileBaseName('');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось создать папку. Попробуйте еще раз.',
+      );
+    } finally {
+      setIsCreatingFile(false);
+    }
+  };
+
+  const handleMoveFile = async (fileId: string, directoryId: string | null) => {
+    try {
+      setErrorMessage(null);
+
+      const nextFile = await moveFile(fileId, directoryId);
+
+      setRoom((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          files: current.files.map((file) =>
+            file.id === nextFile.id ? nextFile : file,
+          ),
+        };
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось переместить файл. Попробуйте еще раз.',
+      );
+    }
+  };
+
+  const handleMoveDirectory = async (
+    directoryId: string,
+    parentId: string | null,
+  ) => {
+    try {
+      setErrorMessage(null);
+
+      const nextDirectory = await moveDirectory(directoryId, parentId);
+
+      setRoom((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          directories: current.directories.map((directory) =>
+            directory.id === nextDirectory.id ? nextDirectory : directory,
+          ),
+        };
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось переместить папку. Попробуйте еще раз.',
+      );
     }
   };
 
@@ -569,21 +734,37 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
             minWidth={0}
           >
             <FileSidebar
+              rootName={room.name}
               files={room.files}
+              directories={room.directories}
               selectedFileId={selectedFile?.id ?? null}
               currentUserId={user?.id}
               isOwner={isOwner}
               isCreatingFile={isCreatingFile}
               deletingFileId={deletingFileId}
+              deletingDirectoryId={deletingDirectoryId}
               onCreateFile={() => {
+                setCreateItemType('file');
                 setNewFileBaseName(buildNextFileBaseName(room.files));
                 setNewFileLanguage('TYPESCRIPT');
+                setIsCreateFileModalOpen(true);
+              }}
+              onCreateDirectory={() => {
+                setCreateItemType('directory');
+                setNewFileBaseName(buildNextDirectoryBaseName(room.directories));
                 setIsCreateFileModalOpen(true);
               }}
               onSelectFile={(fileId) => {
                 setSelectedFileId(fileId);
               }}
               onDeleteFile={confirmDeleteFile}
+              onDeleteDirectory={confirmDeleteDirectory}
+              onMoveFile={(fileId, directoryId) => {
+                void handleMoveFile(fileId, directoryId);
+              }}
+              onMoveDirectory={(directoryId, parentId) => {
+                void handleMoveDirectory(directoryId, parentId);
+              }}
             />
 
             <Box
@@ -632,6 +813,8 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               ? 'Удалить комнату'
               : confirmState.type === 'delete-file'
                 ? 'Удалить файл'
+                : confirmState.type === 'delete-directory'
+                  ? 'Удалить папку'
                 : 'Удалить участника'
           }
           description={
@@ -639,6 +822,8 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               ? 'Вы точно хотите удалить комнату?'
               : confirmState.type === 'delete-file'
                 ? `Вы точно хотите удалить файл ${confirmState.file.name}?`
+                : confirmState.type === 'delete-directory'
+                  ? `Вы точно хотите удалить папку ${confirmState.directory.name} вместе со всем содержимым?`
                 : `Вы точно хотите удалить участника ${getParticipantName(
                     confirmState.participant,
                   )}?`
@@ -648,10 +833,17 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               ? isDeletingRoom
               : confirmState.type === 'delete-file'
                 ? deletingFileId === confirmState.file.id
+                : confirmState.type === 'delete-directory'
+                  ? deletingDirectoryId === confirmState.directory.id
                 : removingParticipantId === confirmState.participant.id
           }
           onCancel={() => {
-            if (isDeletingRoom || removingParticipantId || deletingFileId) {
+            if (
+              isDeletingRoom ||
+              removingParticipantId ||
+              deletingFileId ||
+              deletingDirectoryId
+            ) {
               return;
             }
 
@@ -665,6 +857,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
       {isCreateFileModalOpen ? (
         <CreateFileModal
+          itemType={createItemType}
           fileName={newFileBaseName}
           fileExtension={getFileExtension(newFileLanguage)}
           language={newFileLanguage}
@@ -681,6 +874,11 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
             setIsCreateFileModalOpen(false);
           }}
           onConfirm={() => {
+            if (createItemType === 'directory') {
+              void handleCreateDirectory();
+              return;
+            }
+
             void handleCreateFile();
           }}
         />
@@ -705,6 +903,13 @@ function getParticipantName(participant: {
 function buildNextFileBaseName(files: RoomFile[]) {
   const nextIndex = files.length + 1;
   return `main-${nextIndex}`;
+}
+
+function buildNextDirectoryBaseName(
+  directories: Array<{ name: string }>,
+) {
+  const nextIndex = directories.length + 1;
+  return `folder-${nextIndex}`;
 }
 
 function getFileExtension(language: RoomFile['language']) {
