@@ -139,33 +139,53 @@ function ParticipantMenuItem({
       gap={10}
     >
       <Box alignItems="center" gap={10}>
-        <Box
-          width={32}
-          height={32}
-          backgroundColor="#202734"
-          borderRadius={10}
-          alignItems="center"
-          justifyContent="center"
+        <Button
+          type="link"
+          href={`/profile/${participant.id}`}
+          variant="ghost"
+          padding={0}
+          bg="transparent"
+          textColor="#FFFFFF"
         >
-          <Text color="#FFFFFF" font="$rus" size={14} lineHeight="16px">
-            {getParticipantInitial(participant)}
-          </Text>
-        </Box>
+          <Box alignItems="center" gap={10}>
+            <Box
+              width={32}
+              height={32}
+              backgroundColor="#202734"
+              borderRadius={10}
+              alignItems="center"
+              justifyContent="center"
+              overflow="hidden"
+            >
+              {participant.avatarUrl ? (
+                <img
+                  src={participant.avatarUrl}
+                  alt={getParticipantName(participant)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <Text color="#FFFFFF" font="$rus" size={14} lineHeight="16px">
+                  {getParticipantInitial(participant)}
+                </Text>
+              )}
+            </Box>
 
-        <Box flexDirection="column" gap={2}>
-          <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-            {getParticipantName(participant)}
-          </Text>
-          {isOwner ? (
-            <Text color="#7BC77A" font="$footer" size={11} lineHeight="14px">
-              Владелец
-            </Text>
-          ) : (
-            <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
-              {participant.email}
-            </Text>
-          )}
-        </Box>
+            <Box flexDirection="column" gap={2}>
+              <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
+                {getParticipantName(participant)}
+              </Text>
+              {isOwner ? (
+                <Text color="#7BC77A" font="$footer" size={11} lineHeight="14px">
+                  Владелец
+                </Text>
+              ) : (
+                <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
+                  {participant.email}
+                </Text>
+              )}
+            </Box>
+          </Box>
+        </Button>
       </Box>
 
       {canKick ? (

@@ -8,6 +8,7 @@ export type RoomParticipant = {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  avatarUrl?: string | null;
   role?: string;
 };
 

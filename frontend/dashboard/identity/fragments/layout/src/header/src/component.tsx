@@ -29,7 +29,7 @@ export const MainHeader = (): ReactNode => {
           </Text>
         </Box>
 
-        {user ? <UserMenu name={getDisplayName(user)} /> : <GuestActions />}
+        {user ? <UserMenu user={user} /> : <GuestActions />}
       </Box>
     </Box>
   );
@@ -71,8 +71,14 @@ function GuestActions(): ReactNode {
   );
 }
 
-function UserMenu({ name }: { name: string }): ReactNode {
+function UserMenu({
+  user,
+}: {
+  user: ReturnType<typeof useAuthSession>['user'] & { id: string };
+}): ReactNode {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const name = getDisplayName(user);
+  const initials = name.trim().charAt(0).toUpperCase() || 'U';
 
   const handleLogout = async () => {
     if (isLoggingOut) {
@@ -90,22 +96,45 @@ function UserMenu({ name }: { name: string }): ReactNode {
 
   return (
     <Box alignItems="center" gap={10}>
-      <Box
-        alignItems="center"
-        justifyContent="center"
+      <Button
+        type="link"
+        href="/profile"
+        variant="ghost"
         border="1px solid"
         borderColor="$border"
         borderRadius={15}
-        paddingTop={11}
-        paddingRight={18}
-        paddingBottom={11}
-        paddingLeft={18}
+        padding={0}
+        bg="transparent"
+        textColor="#FFFFFF"
         style={{ minHeight: 42 }}
       >
-        <Text color="#FFFFFF" font="$footer" size={16} lineHeight="20px">
-          {name}
-        </Text>
-      </Box>
+        <Box alignItems="center" gap={10} paddingTop={11} paddingRight={18} paddingBottom={11} paddingLeft={18}>
+          <Box
+            width={24}
+            height={24}
+            borderRadius={8}
+            backgroundColor="#202734"
+            alignItems="center"
+            justifyContent="center"
+            overflow="hidden"
+          >
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
+                {initials}
+              </Text>
+            )}
+          </Box>
+          <Text color="#FFFFFF" font="$footer" size={16} lineHeight="20px">
+            {name}
+          </Text>
+        </Box>
+      </Button>
 
       <Button
         type="button"

@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -17,7 +18,9 @@ type SessionUser = {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  avatarUrl?: string | null;
   isVerified: boolean;
+  createdAt?: string;
 };
 
 type SessionState = {
@@ -25,6 +28,8 @@ type SessionState = {
   isLoading: boolean;
   requiresVerification: boolean;
   verificationMessage: string | null;
+  refreshSession: () => Promise<void>;
+  updateSessionUser: (user: SessionUser) => void;
 };
 
 const AuthSessionContext = createContext<SessionState>({
@@ -32,6 +37,8 @@ const AuthSessionContext = createContext<SessionState>({
   isLoading: true,
   requiresVerification: false,
   verificationMessage: null,
+  refreshSession: async () => {},
+  updateSessionUser: () => {},
 });
 
 type AuthSessionProviderProps = {
@@ -41,80 +48,95 @@ type AuthSessionProviderProps = {
 export function AuthSessionProvider({
   children,
 }: AuthSessionProviderProps): ReactNode {
-  const [state, setState] = useState<SessionState>({
-    user: null,
+  const [state, setState] = useState({
+    user: null as SessionUser | null,
     isLoading: true,
     requiresVerification: false,
-    verificationMessage: null,
+    verificationMessage: null as string | null,
   });
+
+  const updateSessionUser = useCallback((user: SessionUser) => {
+    setState((current) => ({
+      ...current,
+      user,
+    }));
+  }, []);
+
+  const loadSession = useCallback(async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              code?: string;
+              message?: string | string[];
+              user?: SessionUser;
+            }
+          | null;
+
+        setState({
+          user:
+            payload?.code === 'ACCOUNT_NOT_VERIFIED' ? payload.user ?? null : null,
+          isLoading: false,
+          requiresVerification: payload?.code === 'ACCOUNT_NOT_VERIFIED',
+          verificationMessage:
+            typeof payload?.message === 'string'
+              ? payload.message
+              : 'Подтвердите аккаунт, чтобы продолжить работу.',
+        });
+        return;
+      }
+
+      const payload = (await response.json()) as SessionUser;
+
+      setState({
+        user: payload,
+        isLoading: false,
+        requiresVerification: false,
+        verificationMessage: null,
+      });
+    } catch {
+      setState({
+        user: null,
+        isLoading: false,
+        requiresVerification: false,
+        verificationMessage: null,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadSession() {
-      try {
-        const response = await fetch(`${BACKEND_URL}/auth/me`, {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-store',
+    void loadSession().catch(() => {
+      if (!cancelled) {
+        setState({
+          user: null,
+          isLoading: false,
+          requiresVerification: false,
+          verificationMessage: null,
         });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as
-            | {
-                code?: string;
-                message?: string | string[];
-                user?: SessionUser;
-              }
-            | null;
-
-          if (!cancelled) {
-            setState({
-              user:
-                payload?.code === 'ACCOUNT_NOT_VERIFIED'
-                  ? payload.user ?? null
-                  : null,
-              isLoading: false,
-              requiresVerification: payload?.code === 'ACCOUNT_NOT_VERIFIED',
-              verificationMessage:
-                typeof payload?.message === 'string'
-                  ? payload.message
-                  : 'Подтвердите аккаунт, чтобы продолжить работу.',
-            });
-          }
-          return;
-        }
-
-        const payload = (await response.json()) as SessionUser;
-
-        if (!cancelled) {
-          setState({
-            user: payload,
-            isLoading: false,
-            requiresVerification: false,
-            verificationMessage: null,
-          });
-        }
-      } catch {
-        if (!cancelled) {
-          setState({
-            user: null,
-            isLoading: false,
-            requiresVerification: false,
-            verificationMessage: null,
-          });
-        }
       }
-    }
-
-    void loadSession();
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadSession]);
 
-  const value = useMemo(() => state, [state]);
+  const value = useMemo(
+    () => ({
+      ...state,
+      refreshSession: loadSession,
+      updateSessionUser,
+    }),
+    [loadSession, state, updateSessionUser],
+  );
 
   return (
     <AuthSessionContext.Provider value={value}>

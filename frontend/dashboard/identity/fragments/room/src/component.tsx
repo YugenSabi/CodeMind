@@ -76,14 +76,16 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
-  const [createItemType, setCreateItemType] = useState<'file' | 'directory'>('file');
+  const [createItemType, setCreateItemType] = useState<'file' | 'directory'>(
+    'file',
+  );
   const [newFileBaseName, setNewFileBaseName] = useState('');
   const [newFileLanguage, setNewFileLanguage] =
     useState<RoomFile['language']>('TYPESCRIPT');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [removingParticipantId, setRemovingParticipantId] = useState<string | null>(
-    null,
-  );
+  const [removingParticipantId, setRemovingParticipantId] = useState<
+    string | null
+  >(null);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [deletingDirectoryId, setDeletingDirectoryId] = useState<string | null>(
     null,
@@ -92,11 +94,13 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [isRoomCodeCopied, setIsRoomCodeCopied] = useState(false);
   const [dashboardItems, setDashboardItems] = useState<RoomDashboardItem[]>([]);
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
-  const [dashboardErrorMessage, setDashboardErrorMessage] = useState<string | null>(
+  const [dashboardErrorMessage, setDashboardErrorMessage] = useState<
+    string | null
+  >(null);
+  const participantsMenuRef = useRef<HTMLDivElement | null>(null);
+  const roomCodeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const participantsMenuRef = useRef<HTMLDivElement | null>(null);
-  const roomCodeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +114,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         if (!cancelled) {
           setRoom(nextRoom);
-          setSelectedFileId((current) => current ?? nextRoom.files[0]?.id ?? null);
+          setSelectedFileId(
+            (current) => current ?? nextRoom.files[0]?.id ?? null,
+          );
         }
       } catch (error) {
         if (!cancelled) {
@@ -159,31 +165,37 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setSocketStatus('idle');
     });
 
-    socket.on('room:joined', (payload: { participants?: RoomParticipant[] }) => {
-      setRoom((current) => {
-        if (!current) {
-          return current;
-        }
+    socket.on(
+      'room:joined',
+      (payload: { participants?: RoomParticipant[] }) => {
+        setRoom((current) => {
+          if (!current) {
+            return current;
+          }
 
-        return {
-          ...current,
-          users: payload.participants ?? current.users,
-        };
-      });
-    });
+          return {
+            ...current,
+            users: payload.participants ?? current.users,
+          };
+        });
+      },
+    );
 
-    socket.on('room:presence', (payload: { participants?: RoomParticipant[] }) => {
-      setRoom((current) => {
-        if (!current) {
-          return current;
-        }
+    socket.on(
+      'room:presence',
+      (payload: { participants?: RoomParticipant[] }) => {
+        setRoom((current) => {
+          if (!current) {
+            return current;
+          }
 
-        return {
-          ...current,
-          users: payload.participants ?? current.users,
-        };
-      });
-    });
+          return {
+            ...current,
+            users: payload.participants ?? current.users,
+          };
+        });
+      },
+    );
 
     socket.on('room:file_created', (payload: { file?: RoomFile }) => {
       setRoom((current) => {
@@ -252,7 +264,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         return nextRoom.files.some((file) => file.id === current)
           ? current
-          : nextRoom.files[0]?.id ?? null;
+          : (nextRoom.files[0]?.id ?? null);
       });
     });
 
@@ -420,7 +432,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         setIsRoomCodeCopied(false);
       }, 2000);
     } catch {
-      setErrorMessage('Не удалось скопировать код комнаты. Попробуйте еще раз.');
+      setErrorMessage(
+        'Не удалось скопировать код комнаты. Попробуйте еще раз.',
+      );
     }
   };
 
@@ -699,10 +713,11 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
   const isOwner = Boolean(user && user.id === room.owner.id);
   const canManageStructure =
-    room.mode === 'JUST_CODING' ||
-    (room.mode === 'INTERVIEWS' && isOwner);
+    room.mode === 'JUST_CODING' || (room.mode === 'INTERVIEWS' && isOwner);
   const selectedFile =
-    room.files.find((file) => file.id === selectedFileId) ?? room.files[0] ?? null;
+    room.files.find((file) => file.id === selectedFileId) ??
+    room.files[0] ??
+    null;
 
   return (
     <>
@@ -763,7 +778,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               }}
               onCreateDirectory={() => {
                 setCreateItemType('directory');
-                setNewFileBaseName(buildNextDirectoryBaseName(room.directories));
+                setNewFileBaseName(
+                  buildNextDirectoryBaseName(room.directories),
+                );
                 setIsCreateFileModalOpen(true);
               }}
               onSelectFile={(fileId) => {
@@ -828,7 +845,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
                 ? 'Удалить файл'
                 : confirmState.type === 'delete-directory'
                   ? 'Удалить папку'
-                : 'Удалить участника'
+                  : 'Удалить участника'
           }
           description={
             confirmState.type === 'delete-room'
@@ -837,9 +854,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
                 ? `Вы точно хотите удалить файл ${confirmState.file.name}?`
                 : confirmState.type === 'delete-directory'
                   ? `Вы точно хотите удалить папку ${confirmState.directory.name} вместе со всем содержимым?`
-                : `Вы точно хотите удалить участника ${getParticipantName(
-                    confirmState.participant,
-                  )}?`
+                  : `Вы точно хотите удалить участника ${getParticipantName(
+                      confirmState.participant,
+                    )}?`
           }
           isLoading={
             confirmState.type === 'delete-room'
@@ -848,7 +865,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
                 ? deletingFileId === confirmState.file.id
                 : confirmState.type === 'delete-directory'
                   ? deletingDirectoryId === confirmState.directory.id
-                : removingParticipantId === confirmState.participant.id
+                  : removingParticipantId === confirmState.participant.id
           }
           onCancel={() => {
             if (
@@ -918,9 +935,7 @@ function buildNextFileBaseName(files: RoomFile[]) {
   return `main-${nextIndex}`;
 }
 
-function buildNextDirectoryBaseName(
-  directories: Array<{ name: string }>,
-) {
+function buildNextDirectoryBaseName(directories: Array<{ name: string }>) {
   const nextIndex = directories.length + 1;
   return `folder-${nextIndex}`;
 }
