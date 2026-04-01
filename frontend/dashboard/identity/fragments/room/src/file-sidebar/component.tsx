@@ -467,7 +467,7 @@ function DirectoryNode({
             border: 'none',
             borderRadius: 6,
             background: 'transparent',
-            color: '#FFFFFF',
+            color: '#7D8793',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
