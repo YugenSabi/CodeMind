@@ -16,21 +16,21 @@ export function RoomCodeBadge({
 }: RoomCodeBadgeProps): ReactNode {
   return (
     <Box
-      backgroundColor="$mainCards"
+      backgroundColor="#181C24"
       border="1px solid"
-      borderColor="$border"
-      borderRadius={16}
-      paddingTop={10}
-      paddingRight={14}
-      paddingBottom={10}
-      paddingLeft={14}
+      borderColor="rgba(255,255,255,0.08)"
+      borderRadius={10}
+      paddingTop={8}
+      paddingRight={10}
+      paddingBottom={8}
+      paddingLeft={10}
       alignItems="center"
       gap={8}
     >
-      <Text color="$secondaryText" font="$footer" size={13} lineHeight="18px">
+      <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
         Код комнаты
       </Text>
-      <Text color="#FFFFFF" font="$rus" size={16} lineHeight="20px">
+      <Text color="#FFFFFF" font="$rus" size={14} lineHeight="18px">
         {code}
       </Text>
       <Button
@@ -42,8 +42,8 @@ export function RoomCodeBadge({
         minHeight={40}
         padding={0}
         border="1px solid"
-        borderColor={isCopied ? '#43953D' : '$border'}
-        borderRadius={12}
+        borderColor={isCopied ? '#2E7D32' : 'rgba(255,255,255,0.08)'}
+        borderRadius={8}
         textColor="#FFFFFF"
         bg="transparent"
         onClick={onCopy}
@@ -52,7 +52,7 @@ export function RoomCodeBadge({
         <CopyRoomCodeIcon />
       </Button>
       {isCopied ? (
-        <Text color="#B7F3B3" font="$footer" size={12} lineHeight="16px">
+        <Text color="#B7F3B3" font="$footer" size={11} lineHeight="14px">
           Скопировано
         </Text>
       ) : null}

@@ -13,6 +13,7 @@ import { RoomCodeBadge } from '../room-code-badge/component';
 type RoomToolbarProps = {
   room: Room;
   socketStatus: RoomSocketStatus;
+  activeTab: 'editor' | 'dashboard';
   isOwner: boolean;
   isDeletingRoom: boolean;
   isParticipantsOpen: boolean;
@@ -20,6 +21,7 @@ type RoomToolbarProps = {
   isRoomCodeCopied: boolean;
   participantsMenuRef: { current: HTMLDivElement | null };
   onCopyRoomCode: () => void;
+  onSelectTab: (tab: 'editor' | 'dashboard') => void;
   onDeleteRoom: () => void;
   onToggleParticipants: () => void;
   onRemoveParticipant: (participant: RoomParticipant) => void;
@@ -28,6 +30,7 @@ type RoomToolbarProps = {
 export function RoomToolbar({
   room,
   socketStatus,
+  activeTab,
   isOwner,
   isDeletingRoom,
   isParticipantsOpen,
@@ -35,6 +38,7 @@ export function RoomToolbar({
   isRoomCodeCopied,
   participantsMenuRef,
   onCopyRoomCode,
+  onSelectTab,
   onDeleteRoom,
   onToggleParticipants,
   onRemoveParticipant,
@@ -42,14 +46,14 @@ export function RoomToolbar({
   return (
     <Box
       width="$full"
-      backgroundColor="$cardBg"
+      backgroundColor="#121720"
       border="1px solid"
-      borderColor="$border"
-      borderRadius={24}
-      paddingTop={16}
-      paddingRight={18}
-      paddingBottom={16}
-      paddingLeft={18}
+      borderColor="rgba(255,255,255,0.06)"
+      borderRadius={18}
+      paddingTop={12}
+      paddingRight={14}
+      paddingBottom={12}
+      paddingLeft={14}
       justifyContent="space-between"
       alignItems="center"
     >
@@ -59,7 +63,7 @@ export function RoomToolbar({
           isCopied={isRoomCodeCopied}
           onCopy={onCopyRoomCode}
         />
-        <Text color="$secondaryText" font="$footer" size={14} lineHeight="18px">
+        <Text color="#7D8793" font="$footer" size={13} lineHeight="16px">
           {room.name}
         </Text>
       </Box>
@@ -73,24 +77,78 @@ export function RoomToolbar({
           gap: 10,
         }}
       >
+        <Box
+          alignItems="center"
+          gap={6}
+          backgroundColor="#181C24"
+          border="1px solid"
+          borderColor="rgba(255,255,255,0.08)"
+          borderRadius={10}
+          padding={4}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            height={28}
+            minWidth={28}
+            padding={10}
+            borderRadius={8}
+            textColor="#FFFFFF"
+            bg={
+              activeTab === 'editor'
+                ? 'rgba(255,255,255,0.08)'
+                : 'transparent'
+            }
+            onClick={() => {
+              onSelectTab('editor');
+            }}
+          >
+            <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
+              Editor
+            </Text>
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            height={28}
+            minWidth={28}
+            padding={10}
+            borderRadius={8}
+            textColor="#FFFFFF"
+            bg={
+              activeTab === 'dashboard'
+                ? 'rgba(95,135,255,0.12)'
+                : 'transparent'
+            }
+            onClick={() => {
+              onSelectTab('dashboard');
+            }}
+          >
+            <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
+              Dashboard
+            </Text>
+          </Button>
+        </Box>
+
         <ConnectionBadge status={socketStatus} />
 
         {isOwner ? (
           <Button
             type="button"
             variant="ghost"
-            height={44}
-            minWidth={44}
-            padding={12}
+            height={36}
+            minWidth={36}
+            padding={10}
             border="1px solid"
-            borderColor="#D14343"
-            borderRadius={16}
-            textColor="#FFB4B4"
-            bg="$mainCards"
+            borderColor="rgba(209,67,67,0.35)"
+            borderRadius={10}
+            textColor="#D89A9A"
+            bg="transparent"
             disabled={isDeletingRoom}
             onClick={onDeleteRoom}
           >
-            <Text color="#FFB4B4" font="$footer" size={14} lineHeight="18px">
+            <Text color="#D89A9A" font="$footer" size={12} lineHeight="14px">
               {isDeletingRoom ? 'Удаление...' : 'Удалить комнату'}
             </Text>
           </Button>
@@ -99,18 +157,18 @@ export function RoomToolbar({
         <Button
           type="button"
           variant="ghost"
-          height={44}
-          minWidth={44}
-          padding={12}
+          height={36}
+          minWidth={36}
+          padding={10}
           border="1px solid"
-          borderColor="$border"
-          borderRadius={16}
+          borderColor="rgba(255,255,255,0.08)"
+          borderRadius={10}
           textColor="#FFFFFF"
-          bg="$mainCards"
+          bg="transparent"
           startIcon={<ParticipantsIcon />}
           onClick={onToggleParticipants}
         >
-          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+          <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
             Участники
           </Text>
         </Button>

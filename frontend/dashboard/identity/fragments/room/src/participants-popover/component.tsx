@@ -30,26 +30,32 @@ export function ParticipantsPopover({
       position="absolute"
       zIndex={10}
       style={{ top: 'calc(100% + 12px)', right: 0 }}
-      width={360}
-      backgroundColor="$cardBg"
+      width={340}
+      backgroundColor="#121720"
       border="1px solid"
-      borderColor="$border"
-      borderRadius={24}
-      padding={18}
+      borderColor="rgba(255,255,255,0.08)"
+      borderRadius={18}
+      padding={14}
       flexDirection="column"
-      gap={14}
+      gap={12}
       shadow="$md"
     >
-      <Box flexDirection="column" gap={6}>
-        <Text color="$secondaryText" font="$footer" size={13} lineHeight="18px">
+      <Box
+        flexDirection="column"
+        gap={4}
+        paddingBottom={10}
+        borderBottom="1px solid"
+        borderColor="rgba(255,255,255,0.06)"
+      >
+        <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
           Код комнаты
         </Text>
-        <Text color="#FFFFFF" font="$rus" size={24} lineHeight="28px">
+        <Text color="#FFFFFF" font="$rus" size={20} lineHeight="24px">
           {roomCode}
         </Text>
       </Box>
 
-      <Box flexDirection="column" gap={10}>
+      <Box flexDirection="column" gap={6}>
         {participants.map((participant) => (
           <ParticipantMenuItem
             key={participant.id}
@@ -73,13 +79,13 @@ export function ConnectionBadge({ status }: ConnectionBadgeProps): ReactNode {
       backgroundColor={config.backgroundColor}
       border="1px solid"
       borderColor={config.borderColor}
-      borderRadius={16}
-      paddingTop={10}
+      borderRadius={8}
+      paddingTop={7}
       paddingRight={14}
-      paddingBottom={10}
+      paddingBottom={7}
       paddingLeft={14}
     >
-      <Text color={config.textColor} font="$footer" size={14} lineHeight="18px">
+      <Text color={config.textColor} font="$footer" size={13} lineHeight="18px">
         {config.label}
       </Text>
     </Box>
@@ -120,39 +126,42 @@ function ParticipantMenuItem({
   return (
     <Box
       width="$full"
-      backgroundColor="#1A1F26"
+      backgroundColor="#181C24"
       border="1px solid"
-      borderColor="$border"
-      borderRadius={18}
-      padding={14}
+      borderColor="rgba(255,255,255,0.06)"
+      borderRadius={12}
+      paddingTop={10}
+      paddingRight={10}
+      paddingBottom={10}
+      paddingLeft={10}
       justifyContent="space-between"
       alignItems="center"
-      gap={12}
+      gap={10}
     >
-      <Box alignItems="center" gap={12}>
+      <Box alignItems="center" gap={10}>
         <Box
-          width={38}
-          height={38}
-          backgroundColor="#FFFFFF"
-          borderRadius={12}
+          width={32}
+          height={32}
+          backgroundColor="#202734"
+          borderRadius={10}
           alignItems="center"
           justifyContent="center"
         >
-          <Text color="#151B23" font="$rus" size={16} lineHeight="20px">
+          <Text color="#FFFFFF" font="$rus" size={14} lineHeight="16px">
             {getParticipantInitial(participant)}
           </Text>
         </Box>
 
-        <Box flexDirection="column" gap={4}>
-          <Text color="#FFFFFF" font="$footer" size={15} lineHeight="20px">
+        <Box flexDirection="column" gap={2}>
+          <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
             {getParticipantName(participant)}
           </Text>
           {isOwner ? (
-            <Text color="#43953D" font="$footer" size={12} lineHeight="16px">
+            <Text color="#7BC77A" font="$footer" size={11} lineHeight="14px">
               Владелец
             </Text>
           ) : (
-            <Text color="$secondaryText" font="$footer" size={12} lineHeight="16px">
+            <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
               {participant.email}
             </Text>
           )}
@@ -163,23 +172,24 @@ function ParticipantMenuItem({
         <Button
           type="button"
           variant="ghost"
-          width={34}
-          height={34}
-          minWidth={34}
-          minHeight={34}
+          width={26}
+          height={26}
+          minWidth={26}
+          minHeight={26}
           padding={0}
+          borderRadius={8}
+          textColor="#B88D8D"
           border="1px solid"
-          borderColor="#D14343"
-          borderRadius={12}
-          textColor="#FFB4B4"
+          borderColor="#B88D8D"
+          bg="transparent"
           disabled={isRemoving}
           onClick={() => {
             onRemoveParticipant(participant);
           }}
           aria-label={`Удалить участника ${getParticipantName(participant)}`}
         >
-          <Text color="#FFB4B4" font="$footer" size={18} lineHeight="18px">
-            {isRemoving ? '…' : '−'}
+          <Text color="#B88D8D" font="$footer" size={18} >
+            {isRemoving ? '...' : '−'}
           </Text>
         </Button>
       ) : null}

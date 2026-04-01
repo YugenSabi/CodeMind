@@ -19,6 +19,23 @@ export type Room = {
   files: RoomFile[];
 };
 
+export type RoomDashboardItem = {
+  id: string;
+  type: 'FILE_CREATED' | 'FILE_UPDATED' | 'FILE_COLLABORATION_JOINED';
+  createdAt: string;
+  actor: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+  file: {
+    id: string;
+    name: string;
+    language: RoomFile['language'];
+  };
+};
+
 export type CreateRoomPayload = {
   name: string;
 };

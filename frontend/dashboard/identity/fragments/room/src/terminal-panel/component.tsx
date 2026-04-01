@@ -14,20 +14,27 @@ export function TerminalPanel({
   return (
     <Box
       width="$full"
-      minHeight={180}
+      height={230}
+      minHeight={230}
       backgroundColor="#0B0F14"
-      border="1px solid"
-      borderColor="$border"
-      borderRadius={24}
-      padding={16}
+      borderTop="1px solid"
+      borderColor="rgba(255,255,255,0.06)"
       flexDirection="column"
-      gap={10}
+      overflow="hidden"
     >
-      <Box justifyContent="space-between" alignItems="center">
-        <Text color="#FFFFFF" font="$rus" size={18} lineHeight="22px">
+      <Box
+        justifyContent="space-between"
+        alignItems="center"
+        paddingTop={10}
+        paddingRight={14}
+        paddingBottom={10}
+        paddingLeft={14}
+        backgroundColor="#181C24"
+      >
+        <Text color="#B8C1CC" font="$footer" size={12} lineHeight="16px">
           Terminal
         </Text>
-        <Text color="$secondaryText" font="$footer" size={12} lineHeight="16px">
+        <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
           {status === 'running'
             ? 'running'
             : status === 'stopped'
@@ -39,8 +46,9 @@ export function TerminalPanel({
       <div
         ref={terminalRootRef}
         style={{
-          minHeight: 220,
+          height: 188,
           width: '100%',
+          padding: '12px 14px 14px',
         }}
       />
     </Box>

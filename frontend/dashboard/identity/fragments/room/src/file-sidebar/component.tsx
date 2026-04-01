@@ -30,37 +30,43 @@ export function FileSidebar({
 }: FileSidebarProps): ReactNode {
   return (
     <Box
-      width={320}
-      backgroundColor="$background"
+      width={280}
+      backgroundColor="#121720"
       border="1px solid"
-      borderColor="$border"
-      borderRadius={30}
-      padding={18}
+      borderColor="rgba(255,255,255,0.06)"
+      borderRadius={18}
+      paddingTop={12}
+      paddingRight={10}
+      paddingBottom={12}
+      paddingLeft={10}
       flexDirection="column"
-      gap={14}
+      gap={10}
+      overflow="hidden"
     >
       <Box justifyContent="space-between" alignItems="center" gap={12}>
         <Box flexDirection="column" gap={4}>
-          <Text color="#FFFFFF" font="$rus" size={22} lineHeight="26px">
-            Файлы комнаты
+          <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
+            EXPLORER
           </Text>
-          <Text color="$secondaryText" font="$footer" size={13} lineHeight="18px">
-            Создай файл и подключись к realtime-редактированию.
+          <Text color="#7D8793" font="$footer" size={12} lineHeight="16px">
+            CodeMind
           </Text>
         </Box>
 
         <Button
           type="button"
-          variant="filled"
-          height={42}
-          padding={16}
-          borderRadius={16}
-          bg="#43953D"
+          variant="ghost"
+          height={28}
+          padding={10}
+          border="1px solid"
+          borderColor="rgba(255,255,255,0.08)"
+          borderRadius={8}
+          bg="transparent"
           textColor="#FFFFFF"
           disabled={isCreatingFile}
           onClick={onCreateFile}
         >
-          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+          <Text color="#B8C1CC" font="$footer" size={12} lineHeight="14px">
             {isCreatingFile ? 'Создание...' : '+ Файл'}
           </Text>
         </Button>
@@ -68,19 +74,16 @@ export function FileSidebar({
 
       {files.length === 0 ? (
         <Box
-          backgroundColor="rgba(145, 152, 161, 0.08)"
-          border="1px solid"
-          borderColor="$border"
-          borderRadius={20}
-          padding={16}
+          backgroundColor="rgba(255,255,255,0.03)"
+          borderRadius={12}
+          padding={12}
         >
-          <Text color="$secondaryText" font="$footer" size={14} lineHeight="20px">
-            В комнате пока нет файлов. Создай первый файл и он сразу подключится к
-            collaborative editor.
+          <Text color="#7D8793" font="$footer" size={12} lineHeight="18px">
+            В комнате пока нет файлов. Создайте первый файл и он сразу откроется в редакторе.
           </Text>
         </Box>
       ) : (
-        <Box flexDirection="column" gap={10}>
+        <Box flexDirection="column" gap={2}>
           {files.map((file) => (
             <FileCard
               key={file.id}

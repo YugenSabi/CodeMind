@@ -9,8 +9,10 @@ import {
   deleteRoom,
   disconnectRoomSocket,
   getRoom,
+  getRoomDashboard,
   joinRoomSocket,
   removeRoomParticipant,
+  type RoomDashboardItem,
   type Room,
   type RoomParticipant,
   type RoomSocket,
@@ -21,6 +23,7 @@ import { CollaborativeEditor } from './collaborative-editor';
 import { ConfirmModal } from './confirm-modal/component';
 import { CreateFileModal } from './create-file-modal/component';
 import { FileSidebar } from './file-sidebar/component';
+import { RoomDashboard } from './room-dashboard/component';
 import { RoomToolbar } from './room-toolbar/component';
 import {
   InlineErrorMessage,
@@ -56,6 +59,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [socketStatus, setSocketStatus] = useState<RoomSocketStatus>('idle');
   const [roomSocket, setRoomSocket] = useState<RoomSocket | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'editor' | 'dashboard'>('editor');
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
@@ -69,6 +73,11 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [isRoomCodeCopied, setIsRoomCodeCopied] = useState(false);
+  const [dashboardItems, setDashboardItems] = useState<RoomDashboardItem[]>([]);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
+  const [dashboardErrorMessage, setDashboardErrorMessage] = useState<string | null>(
+    null,
+  );
   const participantsMenuRef = useRef<HTMLDivElement | null>(null);
   const roomCodeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -237,6 +246,49 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, [isParticipantsOpen]);
+
+  useEffect(() => {
+    const dashboardRoomId = room?.id;
+
+    if (activeTab !== 'dashboard' || !dashboardRoomId) {
+      return;
+    }
+
+    const roomId = dashboardRoomId;
+
+    let cancelled = false;
+
+    async function loadRoomDashboard() {
+      try {
+        setIsDashboardLoading(true);
+        setDashboardErrorMessage(null);
+
+        const items = await getRoomDashboard(roomId);
+
+        if (!cancelled) {
+          setDashboardItems(items);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDashboardErrorMessage(
+            error instanceof Error
+              ? error.message
+              : 'Не удалось загрузить dashboard комнаты.',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsDashboardLoading(false);
+        }
+      }
+    }
+
+    void loadRoomDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, room?.id]);
 
   useEffect(() => {
     return () => {
@@ -478,10 +530,11 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
   return (
     <>
-      <Box width="$full" flexDirection="column" gap={16}>
+      <Box width="$full" flexDirection="column" gap={12}>
         <RoomToolbar
           room={room}
           socketStatus={socketStatus}
+          activeTab={activeTab}
           isOwner={isOwner}
           isDeletingRoom={isDeletingRoom}
           isParticipantsOpen={isParticipantsOpen}
@@ -489,6 +542,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           isRoomCodeCopied={isRoomCodeCopied}
           participantsMenuRef={participantsMenuRef}
           onCopyRoomCode={handleCopyRoomCode}
+          onSelectTab={setActiveTab}
           onDeleteRoom={confirmDeleteRoom}
           onToggleParticipants={() => {
             setIsParticipantsOpen((current) => !current);
@@ -498,57 +552,77 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         {errorMessage ? <InlineErrorMessage message={errorMessage} /> : null}
 
-        <Box width="$full" minHeight={640} gap={16} alignItems="stretch">
-          <FileSidebar
-            files={room.files}
-            selectedFileId={selectedFile?.id ?? null}
-            currentUserId={user?.id}
-            isOwner={isOwner}
-            isCreatingFile={isCreatingFile}
-            deletingFileId={deletingFileId}
-            onCreateFile={() => {
-              setNewFileBaseName(buildNextFileBaseName(room.files));
-              setNewFileLanguage('TYPESCRIPT');
-              setIsCreateFileModalOpen(true);
-            }}
-            onSelectFile={(fileId) => {
-              setSelectedFileId(fileId);
-            }}
-            onDeleteFile={confirmDeleteFile}
-          />
-
-          <Box
-            minHeight={640}
-            backgroundColor="$background"
-            border="1px solid"
-            borderColor="$border"
-            borderRadius={30}
-            padding={18}
-            style={{ flex: 1 }}
-          >
-            {selectedFile ? (
-              <CollaborativeEditor
-                file={selectedFile}
-                user={user}
-                roomId={room.id}
-                socket={roomSocket}
-              />
-            ) : (
-              <Box
-                width="$full"
-                height="$full"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <StatusCard
-                  title="Файл не выбран"
-                  description="Создай файл в комнате, и здесь откроется редактор."
-                  tone="muted"
-                />
-              </Box>
-            )}
+        {activeTab === 'dashboard' ? (
+          <Box width="$full" minHeight={680}>
+            <RoomDashboard
+              items={dashboardItems}
+              isLoading={isDashboardLoading}
+              errorMessage={dashboardErrorMessage}
+            />
           </Box>
-        </Box>
+        ) : (
+          <Box
+            width="$full"
+            minHeight={680}
+            gap={12}
+            alignItems="stretch"
+            minWidth={0}
+          >
+            <FileSidebar
+              files={room.files}
+              selectedFileId={selectedFile?.id ?? null}
+              currentUserId={user?.id}
+              isOwner={isOwner}
+              isCreatingFile={isCreatingFile}
+              deletingFileId={deletingFileId}
+              onCreateFile={() => {
+                setNewFileBaseName(buildNextFileBaseName(room.files));
+                setNewFileLanguage('TYPESCRIPT');
+                setIsCreateFileModalOpen(true);
+              }}
+              onSelectFile={(fileId) => {
+                setSelectedFileId(fileId);
+              }}
+              onDeleteFile={confirmDeleteFile}
+            />
+
+            <Box
+              width="$full"
+              minHeight={0}
+              height={680}
+              backgroundColor="#121720"
+              border="1px solid"
+              borderColor="rgba(255,255,255,0.06)"
+              borderRadius={18}
+              padding={12}
+              minWidth={0}
+              overflow="hidden"
+              style={{ flex: 1 }}
+            >
+              {selectedFile ? (
+                <CollaborativeEditor
+                  file={selectedFile}
+                  user={user}
+                  roomId={room.id}
+                  socket={roomSocket}
+                />
+              ) : (
+                <Box
+                  width="$full"
+                  height="$full"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <StatusCard
+                    title="Файл не выбран"
+                    description="Создайте файл в комнате и здесь откроется редактор."
+                    tone="muted"
+                  />
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {confirmState ? (

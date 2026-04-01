@@ -30,36 +30,52 @@ export function CreateFileModal({
       position="fixed"
       inset={0}
       zIndex={20}
-      backgroundColor="rgba(21, 27, 35, 0.72)"
+      backgroundColor="rgba(8, 12, 18, 0.72)"
       alignItems="center"
       justifyContent="center"
       padding={24}
+      style={{ backdropFilter: 'blur(10px)' }}
     >
       <Box
         width="$full"
-        maxWidth={520}
-        backgroundColor="$cardBg"
+        maxWidth={480}
+        backgroundColor="#121720"
         border="1px solid"
-        borderColor="$border"
-        borderRadius={28}
-        padding={24}
+        borderColor="rgba(255,255,255,0.08)"
+        borderRadius={20}
+        paddingTop={20}
+        paddingRight={20}
+        paddingBottom={18}
+        paddingLeft={20}
         flexDirection="column"
-        gap={18}
+        gap={16}
+        shadow="$md"
       >
-        <Box flexDirection="column" gap={8}>
-          <Text color="#FFFFFF" font="$rus" size={28} lineHeight="32px">
+        <Box flexDirection="column" gap={6}>
+          <Text color="#FFFFFF" font="$rus" size={24} lineHeight="28px">
             Создать файл
           </Text>
-          <Text color="$secondaryText" font="$footer" size={16} lineHeight="22px">
-            Выберите название и тип файла для комнаты.
+          <Text color="#7D8793" font="$footer" size={13} lineHeight="18px">
+            Укажите имя и язык файла для комнаты.
           </Text>
         </Box>
 
         <Box flexDirection="column" gap={8}>
-          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
-            Название файла
+          <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
+            Имя файла
           </Text>
-          <Box alignItems="center" gap={8}>
+          <Box
+            alignItems="center"
+            gap={8}
+            paddingTop={6}
+            paddingRight={6}
+            paddingBottom={6}
+            paddingLeft={12}
+            backgroundColor="#0F141C"
+            border="1px solid"
+            borderColor="rgba(255,255,255,0.08)"
+            borderRadius={12}
+          >
             <input
               value={fileName}
               onChange={(event) => {
@@ -72,34 +88,34 @@ export function CreateFileModal({
               }}
             />
             <Box
-              minWidth={72}
-              height={48}
+              minWidth={58}
+              height={34}
               border="1px solid"
-              borderColor="$border"
-              borderRadius={16}
+              borderColor="rgba(255,255,255,0.06)"
+              borderRadius={9}
               alignItems="center"
               justifyContent="center"
-              paddingLeft={12}
-              paddingRight={12}
-              backgroundColor="#151B23"
+              paddingLeft={10}
+              paddingRight={10}
+              backgroundColor="#171D26"
             >
-              <Text color="$secondaryText" font="$footer" size={14} lineHeight="18px">
-                {fileExtension || 'none'}
+              <Text color="#8C97A4" font="$footer" size={12} lineHeight="14px">
+                {fileExtension || 'txt'}
               </Text>
             </Box>
           </Box>
         </Box>
 
         <Box flexDirection="column" gap={8}>
-          <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
-            Тип файла
+          <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
+            Язык
           </Text>
           <select
             value={language}
             onChange={(event) => {
               onLanguageChange(event.target.value as RoomFile['language']);
             }}
-            style={getModalFieldStyles()}
+            style={getSelectStyles()}
           >
             {FILE_LANGUAGE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -109,20 +125,26 @@ export function CreateFileModal({
           </select>
         </Box>
 
-        <Box justifyContent="flex-end" gap={10}>
+        <Box
+          justifyContent="flex-end"
+          alignItems="center"
+          gap={10}
+          paddingTop={4}
+        >
           <Button
             type="button"
             variant="ghost"
-            height={44}
-            padding={18}
+            height={38}
+            padding={16}
             border="1px solid"
-            borderColor="$border"
-            borderRadius={16}
-            textColor="#FFFFFF"
+            borderColor="rgba(255,255,255,0.08)"
+            borderRadius={10}
+            textColor="#C7D0DB"
+            bg="transparent"
             disabled={isLoading}
             onClick={onCancel}
           >
-            <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+            <Text color="#C7D0DB" font="$footer" size={13} lineHeight="16px">
               Отмена
             </Text>
           </Button>
@@ -130,15 +152,15 @@ export function CreateFileModal({
           <Button
             type="button"
             variant="filled"
-            height={44}
-            padding={18}
-            borderRadius={16}
-            bg="#43953D"
+            height={38}
+            padding={16}
+            borderRadius={10}
+            bg="#2E7D32"
             textColor="#FFFFFF"
             disabled={isLoading}
             onClick={onConfirm}
           >
-            <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
+            <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
               {isLoading ? 'Создание...' : 'Создать'}
             </Text>
           </Button>
@@ -151,14 +173,29 @@ export function CreateFileModal({
 function getModalFieldStyles() {
   return {
     width: '100%',
-    height: 48,
-    borderRadius: 16,
-    border: '1px solid #383F47',
-    background: '#151B23',
+    height: 34,
+    border: 'none',
+    background: 'transparent',
+    color: '#FFFFFF',
+    padding: '0',
+    outline: 'none',
+    fontSize: '14px',
+    lineHeight: '18px',
+  } as const;
+}
+
+function getSelectStyles() {
+  return {
+    width: '100%',
+    height: 46,
+    borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: '#0F141C',
     color: '#FFFFFF',
     padding: '0 14px',
     outline: 'none',
     fontSize: '14px',
+    lineHeight: '18px',
   } as const;
 }
 

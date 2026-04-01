@@ -69,11 +69,6 @@ type CollaborativeEditorProps = {
   socket: RoomSocket | null;
 };
 
-type PresenceUser = {
-  name: string;
-  color: string;
-};
-
 export function CollaborativeEditor({
   file,
   user,
@@ -84,7 +79,6 @@ export function CollaborativeEditor({
     'connecting' | 'connected' | 'disconnected' | 'error'
   >('connecting');
   const [value, setValue] = useState('');
-  const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [terminalStatus, setTerminalStatus] = useState<
     'idle' | 'running' | 'stopped'
@@ -93,7 +87,6 @@ export function CollaborativeEditor({
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const terminalRootRef = useRef<HTMLDivElement | null>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const textRef = useRef<Y.Text | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
@@ -135,25 +128,11 @@ export function CollaborativeEditor({
     });
 
     const text = document.getText('content');
-    const userColor = getUserColor(user?.id ?? file.id);
-    const userLabel = getUserLabel(user);
-
-    textRef.current = text;
 
     provider.awareness?.setLocalStateField('user', {
-      name: userLabel,
-      color: userColor,
+      name: getUserLabel(user),
+      color: getUserColor(user?.id ?? file.id),
     });
-
-    const syncPresence = () => {
-      const nextPresence = Array.from(
-        provider.awareness?.getStates().values() ?? [],
-      )
-        .map((state) => state.user as PresenceUser | undefined)
-        .filter((item): item is PresenceUser => Boolean(item));
-
-      setPresence(nextPresence);
-    };
 
     const view = new EditorView({
       state: EditorState.create({
@@ -170,16 +149,12 @@ export function CollaborativeEditor({
 
     editorViewRef.current = view;
     setValue(view.state.doc.toString());
-    syncPresence();
-    provider.awareness?.on('change', syncPresence);
 
     return () => {
-      provider.awareness?.off('change', syncPresence);
       view.destroy();
       provider.destroy();
       document.destroy();
       editorViewRef.current = null;
-      textRef.current = null;
     };
   }, [collabUrl, file.documentName, file.id, file.language, user]);
 
@@ -320,11 +295,17 @@ export function CollaborativeEditor({
   };
 
   return (
-    <Box width="$full" height="$full" flexDirection="column" gap={14}>
+    <Box
+      width="$full"
+      height="100%"
+      minWidth={0}
+      minHeight={0}
+      flexDirection="column"
+      gap={10}
+      overflow="hidden"
+    >
       <EditorHeader
         file={file}
-        presence={presence}
-        status={status}
         isRunning={isRunning}
         canStop={Boolean(socket) && terminalStatus === 'running'}
         onRun={() => {
@@ -335,22 +316,30 @@ export function CollaborativeEditor({
 
       <Box
         width="$full"
-        minHeight={420}
+        minWidth={0}
+        minHeight={0}
         backgroundColor="#10151C"
         border="1px solid"
-        borderColor="$border"
-        borderRadius={24}
+        borderColor="rgba(255,255,255,0.06)"
+        borderRadius={18}
         padding={0}
         overflow="hidden"
+        flexDirection="column"
+        style={{ flex: 1 }}
       >
-        <div
-          ref={editorRootRef}
-          style={{
-            width: '100%',
-            minHeight: 420,
-            height: '100%',
-          }}
-        />
+        <Box width="$full" minWidth={0} minHeight={0} overflow="hidden" style={{ flex: 1 }}>
+          <div
+            ref={editorRootRef}
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          />
+        </Box>
+
+        <TerminalPanel terminalRootRef={terminalRootRef} status={terminalStatus} />
       </Box>
 
       {toolError ? (
@@ -370,8 +359,6 @@ export function CollaborativeEditor({
           </Text>
         </Box>
       ) : null}
-
-      <TerminalPanel terminalRootRef={terminalRootRef} status={terminalStatus} />
     </Box>
   );
 }
@@ -398,22 +385,6 @@ function getUserColor(seed: string) {
 
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 70%, 60%)`;
-}
-
-function replaceDocumentContent(
-  nextValue: string,
-  text: Y.Text | null,
-  setValue: (value: string) => void,
-) {
-  if (!text) {
-    setValue(nextValue);
-    return;
-  }
-
-  text.doc?.transact(() => {
-    text.delete(0, text.length);
-    text.insert(0, nextValue);
-  }, 'local-format');
 }
 
 function getEditorExtensions({
@@ -449,7 +420,7 @@ function getEditorExtensions({
       '.cm-scroller': {
         fontFamily:
           'ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, monospace',
-        minHeight: '420px',
+        height: '100%',
       },
       '.cm-gutters': {
         backgroundColor: '#10151C',

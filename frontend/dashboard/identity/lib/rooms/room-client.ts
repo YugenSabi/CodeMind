@@ -2,6 +2,7 @@ import type {
   CreateRoomPayload,
   DeleteRoomResponse,
   JoinRoomPayload,
+  RoomDashboardItem,
   Room,
 } from './room-types';
 
@@ -28,6 +29,17 @@ export async function getRoom(roomId: string): Promise<Room> {
   return request<Room>(`/rooms/${encodeURIComponent(roomId)}`, {
     method: 'GET',
   });
+}
+
+export async function getRoomDashboard(
+  roomId: string,
+): Promise<RoomDashboardItem[]> {
+  return request<RoomDashboardItem[]>(
+    `/rooms/${encodeURIComponent(roomId)}/dashboard`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function removeRoomParticipant(

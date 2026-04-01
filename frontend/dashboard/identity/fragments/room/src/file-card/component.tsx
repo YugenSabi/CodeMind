@@ -1,5 +1,15 @@
 import { type ReactNode } from 'react';
 import type { RoomFile } from '@lib/files';
+import {
+  BrandLogo as PlainTextIcon,
+  BrandTitle as CssIcon,
+  GithubLogo as HtmlIcon,
+  GoogleLogo as MarkdownIcon,
+  Menu as PythonIcon,
+  NotificationIcon as TypeScriptIcon,
+  RadioCircle as JsonIcon,
+  UserIcon as JavaScriptIcon,
+} from '@ui/icons';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -27,7 +37,7 @@ export function FileCard({
         type="button"
         variant="ghost"
         width="$full"
-        height="auto"
+        height={36}
         minHeight={0}
         padding={0}
         textColor="#FFFFFF"
@@ -35,20 +45,30 @@ export function FileCard({
       >
         <Box
           width="$full"
-          backgroundColor={isActive ? '#1C2530' : '#151B23'}
-          border="1px solid"
-          borderColor={isActive ? '#43953D' : '$border'}
-          borderRadius={20}
-          padding={16}
-          flexDirection="column"
-          alignItems="flex-start"
-          gap={6}
+          height={36}
+          backgroundColor={isActive ? 'rgba(95, 135, 255, 0.12)' : 'transparent'}
+          borderRadius={10}
+          paddingLeft={10}
+          paddingRight={34}
+          alignItems="center"
+          gap={8}
+          style={{
+            boxShadow: isActive ? 'inset 2px 0 0 #5F87FF' : 'none',
+          }}
         >
-          <Text color="#FFFFFF" font="$footer" size={15} lineHeight="20px">
+          <Box
+            width={16}
+            height={16}
+            minWidth={16}
+            minHeight={16}
+            alignItems="center"
+            justifyContent="center"
+            color="#8FB4FF"
+          >
+            <LanguageIcon language={file.language} />
+          </Box>
+          <Text color="#D7DEE7" font="$footer" size={13} lineHeight="16px">
             {file.name}
-          </Text>
-          <Text color="$secondaryText" font="$footer" size={12} lineHeight="16px">
-            {file.language} · {file.documentName}
           </Text>
         </Box>
       </Button>
@@ -57,25 +77,55 @@ export function FileCard({
         <Button
           type="button"
           variant="ghost"
-          width={30}
-          height={30}
-          minWidth={30}
-          minHeight={30}
+          width={20}
+          height={20}
+          minWidth={20}
+          minHeight={20}
           padding={0}
-          border="1px solid"
-          borderColor="#D14343"
-          borderRadius={10}
-          textColor="#FFB4B4"
-          bg="#151B23"
-          style={{ position: 'absolute', top: 10, right: 10 }}
+          borderRadius={8}
+          textColor="#7D8793"
+          bg="transparent"
+          style={{ position: 'absolute', top: 8, right: 8 }}
           disabled={isDeleting}
           onClick={onDelete}
         >
-          <Text color="#FFB4B4" font="$footer" size={16} lineHeight="16px">
-            {isDeleting ? '…' : '×'}
+          <Text color="#7D8793" font="$footer" size={14} lineHeight="14px">
+            {isDeleting ? '...' : '×'}
           </Text>
         </Button>
       ) : null}
     </Box>
   );
+}
+
+function LanguageIcon({ language }: { language: RoomFile['language'] }): ReactNode {
+  const sharedProps = {
+    width: 16,
+    height: 16,
+    style: {
+      width: 16,
+      height: 16,
+      display: 'block',
+      flexShrink: 0,
+    },
+  };
+
+  switch (language) {
+    case 'JAVASCRIPT':
+      return <JavaScriptIcon {...sharedProps} />;
+    case 'TYPESCRIPT':
+      return <TypeScriptIcon {...sharedProps} />;
+    case 'PYTHON':
+      return <PythonIcon {...sharedProps} />;
+    case 'JSON':
+      return <JsonIcon {...sharedProps} />;
+    case 'HTML':
+      return <HtmlIcon {...sharedProps} />;
+    case 'CSS':
+      return <CssIcon {...sharedProps} />;
+    case 'MARKDOWN':
+      return <MarkdownIcon {...sharedProps} />;
+    default:
+      return <PlainTextIcon {...sharedProps} />;
+  }
 }
