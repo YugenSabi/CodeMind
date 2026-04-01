@@ -181,14 +181,24 @@ export class TerminalService {
       this.configService.get<string>('E2B_REQUEST_TIMEOUT_MS') ?? 30_000,
     );
 
-    await session.sandbox.pty.resize(
-      session.terminalPid,
-      {
-        cols: input.cols,
-        rows: input.rows,
-      },
-      { requestTimeoutMs },
-    );
+    try {
+      await session.sandbox.pty.resize(
+        session.terminalPid,
+        {
+          cols: input.cols,
+          rows: input.rows,
+        },
+        { requestTimeoutMs },
+      );
+    } catch (error) {
+      if (this.isProcessNotFoundError(error)) {
+        this.sessions.delete(input.roomId);
+        await session.sandbox.kill().catch(() => undefined);
+        return;
+      }
+
+      throw error;
+    }
   }
 
   async stopSession(roomId: string) {
@@ -251,5 +261,17 @@ export class TerminalService {
     }
 
     return 'E2B terminal execution failed';
+  }
+
+  private isProcessNotFoundError(error: unknown) {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    return (
+      error.name === 'NotFoundError' ||
+      error.message.toLowerCase().includes('process with pid') ||
+      error.message.toLowerCase().includes('not found')
+    );
   }
 }

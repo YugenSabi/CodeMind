@@ -28,7 +28,11 @@ import {
   historyKeymap,
   indentWithTab,
 } from '@codemirror/commands';
-import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+} from '@codemirror/autocomplete';
 import {
   bracketMatching,
   defaultHighlightStyle,
@@ -44,9 +48,10 @@ import { markdown } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
 import type { RoomFile } from '@lib/files';
 import type { RoomSocket } from '@lib/rooms';
-import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
+import { EditorHeader } from './editor-header/component';
+import { TerminalPanel } from './terminal-panel/component';
 
 const DEFAULT_COLLAB_URL = 'ws://localhost:1234';
 
@@ -204,7 +209,7 @@ export function CollaborativeEditor({
     const handleResize = () => {
       fitAddon.fit();
 
-      if (socket && roomId) {
+      if (socket && roomId && terminalStatus === 'running') {
         socket.emit('terminal:resize', {
           roomId,
           cols: terminal.cols,
@@ -316,81 +321,17 @@ export function CollaborativeEditor({
 
   return (
     <Box width="$full" height="$full" flexDirection="column" gap={14}>
-      <Box justifyContent="space-between" alignItems="center" gap={12}>
-        <Box flexDirection="column" gap={4}>
-          <Text color="#FFFFFF" font="$rus" size={20} lineHeight="24px">
-            {file.name}
-          </Text>
-          <Text color="$secondaryText" font="$footer" size={13} lineHeight="18px">
-            {file.language} · {file.documentName}
-          </Text>
-        </Box>
-
-        <Box alignItems="center" gap={8} flexWrap="wrap">
-          <Button
-            type="button"
-            variant="filled"
-            height={40}
-            padding={14}
-            borderRadius={14}
-            bg="#43953D"
-            textColor="#FFFFFF"
-            disabled={isRunning}
-            onClick={() => {
-              void handleRun();
-            }}
-          >
-            <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-              {isRunning ? 'Running...' : 'Run'}
-            </Text>
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            height={40}
-            padding={14}
-            border="1px solid"
-            borderColor="$border"
-            borderRadius={14}
-            textColor="#FFFFFF"
-            disabled={!socket || terminalStatus !== 'running'}
-            onClick={handleStop}
-          >
-            <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-              Stop
-            </Text>
-          </Button>
-
-          {presence.map((participant) => (
-            <Box
-              key={`${participant.name}-${participant.color}`}
-              backgroundColor="rgba(255,255,255,0.06)"
-              border="1px solid"
-              borderColor="$border"
-              borderRadius={14}
-              paddingTop={8}
-              paddingRight={10}
-              paddingBottom={8}
-              paddingLeft={10}
-              alignItems="center"
-              gap={8}
-            >
-              <Box
-                width={10}
-                height={10}
-                borderRadius={999}
-                style={{ backgroundColor: participant.color }}
-              />
-              <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-                {participant.name}
-              </Text>
-            </Box>
-          ))}
-
-          <StatusChip status={status} />
-        </Box>
-      </Box>
+      <EditorHeader
+        file={file}
+        presence={presence}
+        status={status}
+        isRunning={isRunning}
+        canStop={Boolean(socket) && terminalStatus === 'running'}
+        onRun={() => {
+          void handleRun();
+        }}
+        onStop={handleStop}
+      />
 
       <Box
         width="$full"
@@ -430,83 +371,7 @@ export function CollaborativeEditor({
         </Box>
       ) : null}
 
-      <TerminalPanel
-        terminalRootRef={terminalRootRef}
-        status={terminalStatus}
-      />
-    </Box>
-  );
-}
-
-function TerminalPanel({
-  terminalRootRef,
-  status,
-}: {
-  terminalRootRef: { current: HTMLDivElement | null };
-  status: 'idle' | 'running' | 'stopped';
-}) {
-  return (
-    <Box
-      width="$full"
-      minHeight={180}
-      backgroundColor="#0B0F14"
-      border="1px solid"
-      borderColor="$border"
-      borderRadius={24}
-      padding={16}
-      flexDirection="column"
-      gap={10}
-    >
-      <Box justifyContent="space-between" alignItems="center">
-        <Text color="#FFFFFF" font="$rus" size={18} lineHeight="22px">
-          Terminal
-        </Text>
-        <Text color="$secondaryText" font="$footer" size={12} lineHeight="16px">
-          {status === 'running'
-            ? 'running'
-            : status === 'stopped'
-              ? 'stopped'
-              : 'idle'}
-        </Text>
-      </Box>
-
-      <div
-        ref={terminalRootRef}
-        style={{
-          minHeight: 220,
-          width: '100%',
-        }}
-      />
-    </Box>
-  );
-}
-
-function StatusChip({
-  status,
-}: {
-  status: 'connecting' | 'connected' | 'disconnected' | 'error';
-}) {
-  const labelByStatus = {
-    connecting: 'Подключение к редактору...',
-    connected: 'Редактор подключен',
-    disconnected: 'Редактор отключен',
-    error: 'Ошибка auth/editor',
-  } as const;
-
-  return (
-    <Box
-      backgroundColor="rgba(145, 152, 161, 0.08)"
-      border="1px solid"
-      borderColor="$border"
-      borderRadius={16}
-      paddingTop={10}
-      paddingRight={14}
-      paddingBottom={10}
-      paddingLeft={14}
-    >
-      <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-        {labelByStatus[status]}
-      </Text>
+      <TerminalPanel terminalRootRef={terminalRootRef} status={terminalStatus} />
     </Box>
   );
 }
