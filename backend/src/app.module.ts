@@ -11,6 +11,8 @@ import { FileEventsModule } from './file-events/file-events.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { CodeToolsModule } from './code-tools/code-tools.module';
+import { LlmModule } from './llm/llm.module';
+import { RoomAiModule } from './room-ai/room-ai.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { CodeToolsModule } from './code-tools/code-tools.module';
     FileEventsModule,
     CollaborationModule,
     CodeToolsModule,
+    LlmModule,
+    RoomAiModule,
   ],
 })
 export class AppModule {}

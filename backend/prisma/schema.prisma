@@ -38,6 +38,22 @@ enum RoomMode {
   ALGORITHMS
 }
 
+enum RoomAiInteractionKind {
+  CURSOR_COMPLETE
+  SELECTION_EXPLAIN
+  SELECTION_REVIEW
+  SELECTION_IMPROVE
+  GENERATE_FROM_INSTRUCTION
+  ALGORITHM_TASK_GENERATED
+  ALGORITHM_SOLUTION_REVIEWED
+}
+
+enum AlgorithmDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
   id               String        @id @default(cuid())
   kratosIdentityId String        @unique
@@ -50,6 +66,8 @@ model User {
   fileEvents       FileEvent[]
   ownedRooms       Room[]        @relation("RoomOwner")
   rooms            Room[]        @relation("RoomMembers")
+  aiInteractions   RoomAiInteraction[]
+  generatedTasks   RoomAlgorithmTask[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }
@@ -64,6 +82,8 @@ model Room {
   users     User[]        @relation("RoomMembers")
   directories ProjectDirectory[]
   files     ProjectFile[]
+  aiInteractions RoomAiInteraction[]
+  algorithmTasks RoomAlgorithmTask[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -99,6 +119,7 @@ model ProjectFile {
   room      Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
   snapshot  FileSnapshot?
   events    FileEvent[]
+  aiInteractions RoomAiInteraction[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -128,4 +149,47 @@ model FileEvent {
 
   @@index([fileId, createdAt])
   @@index([actorId])
+}
+
+model RoomAiInteraction {
+  id        String                @id @default(cuid())
+  roomId    String
+  fileId    String?
+  actorId   String?
+  kind      RoomAiInteractionKind
+  prompt    String
+  response  String
+  metadata  Json?
+  room      Room                  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  file      ProjectFile?          @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  actor     User?                 @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime              @default(now())
+
+  @@index([roomId, createdAt])
+  @@index([fileId])
+  @@index([actorId])
+}
+
+model RoomAlgorithmTask {
+  id                 String               @id @default(cuid())
+  roomId              String
+  createdById         String?
+  difficulty          AlgorithmDifficulty
+  title               String
+  problemStatement    String
+  inputFormat         String?
+  outputFormat        String?
+  constraints         String?
+  starterCode         String?
+  examples            Json?
+  hints               Json?
+  evaluationCriteria  String?
+  isActive            Boolean              @default(true)
+  room                Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdBy           User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([roomId, isActive])
+  @@index([createdById])
 }

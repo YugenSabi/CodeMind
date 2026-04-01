@@ -246,6 +246,21 @@ export class RoomsService {
     };
   }
 
+  async getAccessibleRoomForRequest(request: Request, roomId: string) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const room = await this.getAccessibleRoomById(user.id, roomId, user.role);
+
+    return { user, room };
+  }
+
+  async getAccessibleRoomForUser(
+    userId: string,
+    roomId: string,
+    role: UserRole,
+  ) {
+    return this.getAccessibleRoomById(userId, roomId, role);
+  }
+
   private async getAuthenticatedUserFromRequest(request: Request) {
     const session = await this.kratosService.getSession(request);
     const user = await this.usersService.syncFromKratosIdentity(
@@ -346,6 +361,26 @@ export class RoomsService {
         createdAt: directory.createdAt,
         updatedAt: directory.updatedAt,
       })),
+      activeAlgorithmTask:
+        room.algorithmTasks[0] === undefined
+          ? null
+          : {
+              id: room.algorithmTasks[0].id,
+              roomId: room.algorithmTasks[0].roomId,
+              difficulty: room.algorithmTasks[0].difficulty,
+              title: room.algorithmTasks[0].title,
+              problemStatement: room.algorithmTasks[0].problemStatement,
+              inputFormat: room.algorithmTasks[0].inputFormat,
+              outputFormat: room.algorithmTasks[0].outputFormat,
+              constraints: room.algorithmTasks[0].constraints,
+              starterCode: room.algorithmTasks[0].starterCode,
+              examples: room.algorithmTasks[0].examples,
+              hints: room.algorithmTasks[0].hints,
+              evaluationCriteria: room.algorithmTasks[0].evaluationCriteria,
+              isActive: room.algorithmTasks[0].isActive,
+              createdAt: room.algorithmTasks[0].createdAt,
+              updatedAt: room.algorithmTasks[0].updatedAt,
+            },
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
     };
@@ -363,6 +398,15 @@ export class RoomsService {
       orderBy: {
         name: 'asc' as const,
       },
+    },
+    algorithmTasks: {
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'desc' as const,
+      },
+      take: 1,
     },
   };
 }
