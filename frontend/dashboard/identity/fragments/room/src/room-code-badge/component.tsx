@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -14,6 +17,7 @@ export function RoomCodeBadge({
   isCopied,
   onCopy,
 }: RoomCodeBadgeProps): ReactNode {
+  const t = useTranslations('room');
   const accentColor = isCopied ? '#2E7D32' : '#FFFFFF';
 
   return (
@@ -30,7 +34,7 @@ export function RoomCodeBadge({
       gap={8}
     >
       <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
-        Код комнаты
+        {t('roomCode.label')}
       </Text>
       <Text color="#FFFFFF" font="$rus" size={14} lineHeight="18px">
         {code}
@@ -49,7 +53,9 @@ export function RoomCodeBadge({
         textColor={accentColor}
         bg="transparent"
         onClick={onCopy}
-        aria-label={isCopied ? 'Код комнаты скопирован' : 'Скопировать код комнаты'}
+        aria-label={
+          isCopied ? t('roomCode.copiedAria') : t('roomCode.copyAria')
+        }
       >
         <CopyRoomCodeIcon color={accentColor} />
       </Button>

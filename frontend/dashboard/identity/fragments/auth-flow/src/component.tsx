@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthSession } from '@lib/auth';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -26,6 +27,7 @@ type AuthFlowComponentProps = {
 export function AuthFlowComponent({
   flowType,
 }: AuthFlowComponentProps): ReactNode {
+  const t = useTranslations('authFlow');
   const searchParams = useSearchParams();
   const { user } = useAuthSession();
   const [flow, setFlow] = useState<KratosFlow | null>(null);
@@ -66,9 +68,7 @@ export function AuthFlowComponent({
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : 'Не удалось загрузить форму. Попробуйте еще раз.',
+            error instanceof Error ? error.message : t('loadFailed'),
           );
         }
       } finally {
@@ -83,7 +83,7 @@ export function AuthFlowComponent({
     return () => {
       cancelled = true;
     };
-  }, [flowType, searchParams]);
+  }, [flowType, searchParams, t]);
 
   const fieldNodes = flow
     ? flow.ui.nodes.filter(
@@ -95,8 +95,8 @@ export function AuthFlowComponent({
     : [];
   const orderedFieldNodes =
     flowType === 'registration'
-    ? orderRegistrationNodes(fieldNodes)
-    : fieldNodes;
+      ? orderRegistrationNodes(fieldNodes)
+      : fieldNodes;
   const passwordNode = fieldNodes.find((node) => node.attributes.name === 'password');
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
@@ -112,13 +112,13 @@ export function AuthFlowComponent({
 
     if (confirmPassword.trim().length === 0) {
       event.preventDefault();
-      setConfirmPasswordError('Повторите пароль.');
+      setConfirmPasswordError(t('repeatPasswordRequired'));
       return;
     }
 
     if (currentPassword !== confirmPassword) {
       event.preventDefault();
-      setConfirmPasswordError('Пароли не совпадают.');
+      setConfirmPasswordError(t('passwordMismatch'));
       return;
     }
 
@@ -157,15 +157,12 @@ export function AuthFlowComponent({
           </Text>
         </Box>
 
-        {isLoading ? <StatusMessage text="Загрузка формы..." tone="muted" /> : null}
+        {isLoading ? <StatusMessage text={t('loading')} tone="muted" /> : null}
         {!isLoading && errorMessage ? (
           <StatusMessage text={errorMessage} tone="error" />
         ) : null}
         {!isLoading && isVerifiedRedirect ? (
-          <StatusMessage
-            text="Почта подтверждена. Теперь войдите в аккаунт."
-            tone="muted"
-          />
+          <StatusMessage text={t('verifiedInfo')} tone="muted" />
         ) : null}
         {!isLoading && verificationInfo ? (
           <StatusMessage text={verificationInfo} tone="muted" />
@@ -186,8 +183,10 @@ export function AuthFlowComponent({
             isResendingVerification={isResendingVerification}
             resendVerificationLabel={
               isResendingVerification
-                ? 'Отправка...'
-                : `Отправить код повторно${user?.email ? ` на ${user.email}` : ''}`
+                ? t('resending')
+                : user?.email
+                  ? t('resendLabelWithEmail', { email: user.email })
+                  : t('resendLabel')
             }
             onSubmit={handleSubmit}
             onTogglePasswordVisibility={() => {
@@ -204,6 +203,9 @@ export function AuthFlowComponent({
             }}
             onResendVerification={() => {
               void handleResendVerificationCode({
+                backendUrl:
+                  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000',
+                t,
                 onStart: () => {
                   setIsResendingVerification(true);
                   setErrorMessage(null);
@@ -230,7 +232,7 @@ export function AuthFlowComponent({
             lineHeight="18px"
             textAlign="center"
           >
-            Проверьте письмо, отправленное на указанную почту.
+            {t('checkEmail')}
           </Text>
         ) : null}
       </Box>
@@ -239,17 +241,18 @@ export function AuthFlowComponent({
 }
 
 async function handleResendVerificationCode({
+  backendUrl,
+  t,
   onStart,
   onSuccess,
   onError,
 }: {
+  backendUrl: string;
+  t: (key: string, values?: Record<string, string>) => string;
   onStart: () => void;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }) {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
-
   try {
     onStart();
 
@@ -276,16 +279,16 @@ async function handleResendVerificationCode({
         return;
       }
 
-      onError('Не удалось отправить письмо повторно.');
+      onError(t('resendFailed'));
       return;
     }
 
     onSuccess(
       payload?.email
-        ? `Письмо повторно отправлено на ${payload.email}.`
-        : 'Письмо отправлено повторно.',
+        ? t('resendSuccessWithEmail', { email: payload.email })
+        : t('resendSuccess'),
     );
   } catch {
-    onError('Не удалось отправить письмо повторно.');
+    onError(t('resendFailed'));
   }
 }

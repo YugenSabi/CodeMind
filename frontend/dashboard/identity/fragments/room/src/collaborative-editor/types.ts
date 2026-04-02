@@ -48,12 +48,10 @@ export type AiAssistPanelProps = {
 export type AlgorithmTaskPanelProps = {
   task: RoomAlgorithmTask | null;
   difficulty: AlgorithmDifficulty;
-  topic: string;
   isGeneratingTask: boolean;
   isReviewingTask: boolean;
   review: AlgorithmReview;
   onDifficultyChange: (value: AlgorithmDifficulty) => void;
-  onTopicChange: (value: string) => void;
   onGenerateTask: () => void;
   onReviewSolution: () => void;
 };

@@ -1,29 +1,27 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 import type { AlgorithmTaskPanelProps } from '../types';
-import {
-  inputStyles,
-  primaryButtonStyles,
-  secondaryButtonStyles,
-  selectStyles,
-} from '../styles';
+import { primaryButtonStyles, secondaryButtonStyles, selectStyles } from '../styles';
 
 export function AlgorithmTaskPanel({
   task,
   difficulty,
-  topic,
   isGeneratingTask,
   isReviewingTask,
   review,
   onDifficultyChange,
-  onTopicChange,
   onGenerateTask,
   onReviewSolution,
 }: AlgorithmTaskPanelProps) {
+  const t = useTranslations('room.editor');
+
   return (
     <Box flexDirection="column" gap={10}>
       <Text color="#AEB7C2" font="$footer" size={12} lineHeight="16px">
-        Алгоритмический режим
+        {t('algorithmMode')}
       </Text>
 
       <select
@@ -38,21 +36,12 @@ export function AlgorithmTaskPanel({
         <option value="HARD">Hard</option>
       </select>
 
-      <input
-        value={topic}
-        onChange={(event) => {
-          onTopicChange(event.target.value);
-        }}
-        placeholder="Тема задачи, например graph, dp, arrays"
-        style={inputStyles}
-      />
-
       <button
         onClick={onGenerateTask}
         disabled={isGeneratingTask}
         style={primaryButtonStyles}
       >
-        {isGeneratingTask ? 'Генерация...' : 'Сгенерировать задачу'}
+        {isGeneratingTask ? t('generatingTask') : t('generateTask')}
       </button>
 
       {task ? (
@@ -68,15 +57,6 @@ export function AlgorithmTaskPanel({
           <Text color="#FFFFFF" font="$rus" size={14} lineHeight="18px">
             {task.title}
           </Text>
-          <Text
-            color="#D7DEE7"
-            font="$footer"
-            size={13}
-            lineHeight="20px"
-            style={{ whiteSpace: 'pre-wrap' }}
-          >
-            {task.problemStatement}
-          </Text>
           {task.constraints ? (
             <Text
               color="#98A3AF"
@@ -85,7 +65,7 @@ export function AlgorithmTaskPanel({
               lineHeight="18px"
               style={{ whiteSpace: 'pre-wrap' }}
             >
-              Ограничения: {task.constraints}
+              {t('constraints', { constraints: task.constraints })}
             </Text>
           ) : null}
           <button
@@ -93,7 +73,7 @@ export function AlgorithmTaskPanel({
             disabled={isReviewingTask}
             style={secondaryButtonStyles}
           >
-            {isReviewingTask ? 'Проверка...' : 'Проверить решение'}
+            {isReviewingTask ? t('reviewingSolution') : t('reviewSolution')}
           </button>
         </Box>
       ) : null}
@@ -111,13 +91,17 @@ export function AlgorithmTaskPanel({
           gap={8}
         >
           <Text color="#FFFFFF" font="$rus" size={14} lineHeight="18px">
-            Ревью решения
+            {t('reviewTitle')}
           </Text>
           <Text color="#D7DEE7" font="$footer" size={13} lineHeight="18px">
-            Статус: {review.passed ? 'задача решена' : 'нужно доработать'}
+            {t('reviewStatus', {
+              status: review.passed
+                ? t('reviewStatusPassed')
+                : t('reviewStatusFailed'),
+            })}
           </Text>
           <Text color="#D7DEE7" font="$footer" size={13} lineHeight="18px">
-            Оценка: {review.score}
+            {t('reviewScore', { score: review.score })}
           </Text>
           <Text
             color="#D7DEE7"

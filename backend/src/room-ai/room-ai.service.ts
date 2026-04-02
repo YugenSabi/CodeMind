@@ -211,9 +211,7 @@ export class RoomAiService {
         roomId: room.id,
         actorId: user.id,
         kind: RoomAiInteractionKind.ALGORITHM_TASK_GENERATED,
-        prompt: dto.topic
-          ? `Generate ${dto.difficulty} algorithm task about ${dto.topic}`
-          : `Generate ${dto.difficulty} algorithm task`,
+        prompt: `Generate ${dto.difficulty} algorithm task`,
         response: JSON.stringify(this.toAlgorithmTaskView(task)),
         metadata: {
           difficulty: dto.difficulty,

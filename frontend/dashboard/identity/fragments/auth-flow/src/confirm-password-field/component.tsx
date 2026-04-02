@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@ui/input';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -19,10 +22,12 @@ export function ConfirmPasswordField({
   onTogglePasswordVisibility,
   onChange,
 }: ConfirmPasswordFieldProps): ReactNode {
+  const t = useTranslations('authFlow.fields');
+
   return (
     <Box flexDirection="column" gap={8}>
       <Text color="#FFFFFF" font="$footer" size={14} lineHeight="18px">
-        Повторите пароль
+        {t('confirmPassword')}
       </Text>
       <Input
         name="confirm_password"
@@ -42,7 +47,7 @@ export function ConfirmPasswordField({
         textColor="#FFFFFF"
         borderColor={error ? '#D14343' : '$border'}
         bg="$mainCards"
-        placeholder="Повторите пароль"
+        placeholder={t('confirmPassword')}
         placeholderColor="$secondaryText"
         endIcon={
           <PasswordVisibilityButton

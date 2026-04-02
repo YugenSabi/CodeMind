@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { EyeCloseIcon } from '../eye-close-icon/component';
 import { EyeOpenIcon } from '../eye-open-icon/component';
 
@@ -11,6 +14,8 @@ export function PasswordVisibilityButton({
   isVisible,
   onClick,
 }: PasswordVisibilityButtonProps): ReactNode {
+  const t = useTranslations('authFlow.fields');
+
   return (
     <button
       type="button"
@@ -26,7 +31,7 @@ export function PasswordVisibilityButton({
         background: 'transparent',
         cursor: 'pointer',
       }}
-      aria-label={isVisible ? 'Скрыть пароль' : 'Показать пароль'}
+      aria-label={isVisible ? t('hidePassword') : t('showPassword')}
     >
       {isVisible ? <EyeCloseIcon /> : <EyeOpenIcon />}
     </button>

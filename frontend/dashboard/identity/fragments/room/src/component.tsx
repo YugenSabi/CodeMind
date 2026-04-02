@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthSession } from '@lib/auth';
 import {
   createDirectory,
@@ -30,41 +31,28 @@ import {
   type RoomSocketStatus,
 } from '@lib/rooms';
 import { Box } from '@ui/layout';
-import { CollaborativeEditor } from './collaborative-editor';
-import { ConfirmModal } from './confirm-modal/component';
-import { CreateFileModal } from './create-file-modal/component';
-import { FileSidebar } from './file-sidebar/component';
-import { RoomDashboard } from './room-dashboard/component';
+import { RoomConfirmState } from './confirm-state/component';
+import { RoomContent } from './content/component';
+import { CreateItemModal } from './create-item-modal/component';
+import {
+  buildNextDirectoryBaseName,
+  buildNextFileBaseName,
+  getFileExtension,
+} from './helpers';
 import { RoomToolbar } from './room-toolbar/component';
 import {
   InlineErrorMessage,
   RoomStateShell,
   StatusCard,
 } from './state-shell/component';
+import type { ConfirmState } from './types';
 
 type RoomComponentProps = {
   roomId: string;
 };
 
-type ConfirmState =
-  | {
-      type: 'delete-room';
-    }
-  | {
-      type: 'remove-participant';
-      participant: RoomParticipant;
-    }
-  | {
-      type: 'delete-file';
-      file: RoomFile;
-    }
-  | {
-      type: 'delete-directory';
-      directory: RoomDirectory;
-    }
-  | null;
-
 export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
+  const t = useTranslations('room');
   const router = useRouter();
   const { user, requiresVerification, verificationMessage } = useAuthSession();
   const [room, setRoom] = useState<Room | null>(null);
@@ -124,9 +112,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : 'Не удалось загрузить комнату. Попробуйте еще раз.',
+            error instanceof Error ? error.message : t('errors.loadRoom'),
           );
         }
       } finally {
@@ -141,7 +127,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return () => {
       cancelled = true;
     };
-  }, [roomId]);
+  }, [roomId, t]);
 
   useEffect(() => {
     if (!stableRoomId || !user) {
@@ -305,8 +291,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       return;
     }
 
-    const roomId = dashboardRoomId;
-
+    const nextRoomId = dashboardRoomId;
     let cancelled = false;
 
     async function loadRoomDashboard() {
@@ -314,7 +299,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         setIsDashboardLoading(true);
         setDashboardErrorMessage(null);
 
-        const items = await getRoomDashboard(roomId);
+        const items = await getRoomDashboard(nextRoomId);
 
         if (!cancelled) {
           setDashboardItems(items);
@@ -322,9 +307,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       } catch (error) {
         if (!cancelled) {
           setDashboardErrorMessage(
-            error instanceof Error
-              ? error.message
-              : 'Не удалось загрузить dashboard комнаты.',
+            error instanceof Error ? error.message : t('errors.loadDashboard'),
           );
         }
       } finally {
@@ -339,7 +322,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, room?.id]);
+  }, [activeTab, room?.id, t]);
 
   useEffect(() => {
     return () => {
@@ -353,11 +336,8 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return (
       <RoomStateShell>
         <StatusCard
-          title="Подтвердите аккаунт"
-          description={
-            verificationMessage ??
-            'Без подтверждения почты совместное редактирование недоступно.'
-          }
+          title={t('state.verifyTitle')}
+          description={verificationMessage ?? t('state.verifyDescription')}
           tone="muted"
         />
       </RoomStateShell>
@@ -435,9 +415,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         setIsRoomCodeCopied(false);
       }, 2000);
     } catch {
-      setErrorMessage(
-        'Не удалось скопировать код комнаты. Попробуйте еще раз.',
-      );
+      setErrorMessage(t('errors.copyRoomCode'));
     }
   };
 
@@ -452,9 +430,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       await downloadRoomProject(room.id, room.name);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось скачать проект. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.downloadProject'),
       );
     } finally {
       setIsDownloadingProject(false);
@@ -476,9 +452,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         router.push('/dashboard');
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : 'Не удалось удалить комнату. Попробуйте еще раз.',
+          error instanceof Error ? error.message : t('errors.deleteRoom'),
         );
         setIsDeletingRoom(false);
         setConfirmState(null);
@@ -496,9 +470,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         setConfirmState(null);
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : 'Не удалось удалить файл. Попробуйте еще раз.',
+          error instanceof Error ? error.message : t('errors.deleteFile'),
         );
         setConfirmState(null);
       } finally {
@@ -517,9 +489,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
         setConfirmState(null);
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : 'Не удалось удалить папку. Попробуйте еще раз.',
+          error instanceof Error ? error.message : t('errors.deleteDirectory'),
         );
         setConfirmState(null);
       } finally {
@@ -542,9 +512,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setConfirmState(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось удалить участника. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.removeParticipant'),
       );
       setConfirmState(null);
     } finally {
@@ -560,7 +528,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     const normalizedBaseName = newFileBaseName.trim();
 
     if (!normalizedBaseName) {
-      setErrorMessage('Введите название файла');
+      setErrorMessage(t('errors.fileNameRequired'));
       return;
     }
 
@@ -585,9 +553,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setNewFileLanguage('TYPESCRIPT');
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось создать файл. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.createFile'),
       );
     } finally {
       setIsCreatingFile(false);
@@ -602,7 +568,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     const normalizedName = newFileBaseName.trim();
 
     if (!normalizedName) {
-      setErrorMessage('Введите название папки');
+      setErrorMessage(t('errors.directoryNameRequired'));
       return;
     }
 
@@ -624,9 +590,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       setNewFileBaseName('');
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось создать папку. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.createDirectory'),
       );
     } finally {
       setIsCreatingFile(false);
@@ -657,9 +621,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       });
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось переместить файл. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.moveFile'),
       );
     }
   };
@@ -691,9 +653,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
       });
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось переместить папку. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('errors.moveDirectory'),
       );
     }
   };
@@ -702,8 +662,8 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return (
       <RoomStateShell>
         <StatusCard
-          title="Загрузка комнаты"
-          description="Подготавливаем комнату и загружаем участников."
+          title={t('state.loadingTitle')}
+          description={t('state.loadingDescription')}
           tone="muted"
         />
       </RoomStateShell>
@@ -714,7 +674,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return (
       <RoomStateShell>
         <StatusCard
-          title="Комната недоступна"
+          title={t('state.unavailableTitle')}
           description={errorMessage}
           tone="error"
         />
@@ -726,8 +686,8 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     return (
       <RoomStateShell>
         <StatusCard
-          title="Комната недоступна"
-          description="Не удалось открыть комнату."
+          title={t('state.unavailableTitle')}
+          description={t('state.unavailableDescription')}
           tone="error"
         />
       </RoomStateShell>
@@ -770,223 +730,99 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
 
         {errorMessage ? <InlineErrorMessage message={errorMessage} /> : null}
 
-        {activeTab === 'dashboard' ? (
-          <Box width="$full" minHeight={680}>
-            <RoomDashboard
-              items={dashboardItems}
-              isLoading={isDashboardLoading}
-              errorMessage={dashboardErrorMessage}
-            />
-          </Box>
-        ) : (
-          <Box
-            width="$full"
-            minHeight={680}
-            gap={12}
-            alignItems="stretch"
-            minWidth={0}
-          >
-            <FileSidebar
-              rootName={room.name}
-              files={room.files}
-              directories={room.directories}
-              selectedFileId={selectedFile?.id ?? null}
-              currentUserId={user?.id}
-              isOwner={isOwner}
-              canManageStructure={canManageStructure}
-              isCreatingFile={isCreatingFile}
-              deletingFileId={deletingFileId}
-              deletingDirectoryId={deletingDirectoryId}
-              onCreateFile={() => {
-                setCreateItemType('file');
-                setNewFileBaseName(buildNextFileBaseName(room.files));
-                setNewFileLanguage('TYPESCRIPT');
-                setIsCreateFileModalOpen(true);
-              }}
-              onCreateDirectory={() => {
-                setCreateItemType('directory');
-                setNewFileBaseName(
-                  buildNextDirectoryBaseName(room.directories),
-                );
-                setIsCreateFileModalOpen(true);
-              }}
-              onSelectFile={(fileId) => {
-                setSelectedFileId(fileId);
-              }}
-              onDownloadFile={(file) => {
-                void downloadFile(file.id, file.name);
-              }}
-              onDeleteFile={confirmDeleteFile}
-              onDeleteDirectory={confirmDeleteDirectory}
-              onMoveFile={(fileId, directoryId) => {
-                void handleMoveFile(fileId, directoryId);
-              }}
-              onMoveDirectory={(directoryId, parentId) => {
-                void handleMoveDirectory(directoryId, parentId);
-              }}
-            />
-
-            <Box
-              width="$full"
-              minHeight={0}
-              height={680}
-              backgroundColor="#121720"
-              border="1px solid"
-              borderColor="rgba(255,255,255,0.06)"
-              borderRadius={18}
-              padding={12}
-              minWidth={0}
-              overflow="hidden"
-              style={{ flex: 1 }}
-            >
-              {selectedFile ? (
-                <CollaborativeEditor
-                  room={room}
-                  file={selectedFile}
-                  user={user}
-                  roomId={room.id}
-                  socket={roomSocket}
-                />
-              ) : (
-                <Box
-                  width="$full"
-                  height="$full"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <StatusCard
-                    title="Файл не выбран"
-                    description="Создайте файл в комнате и здесь откроется редактор."
-                    tone="muted"
-                  />
-                </Box>
-              )}
-            </Box>
-          </Box>
-        )}
+        <RoomContent
+          room={room}
+          activeTab={activeTab}
+          dashboardItems={dashboardItems}
+          isDashboardLoading={isDashboardLoading}
+          dashboardErrorMessage={dashboardErrorMessage}
+          selectedFile={selectedFile}
+          currentUserId={user?.id}
+          isOwner={isOwner}
+          canManageStructure={canManageStructure}
+          isCreatingFile={isCreatingFile}
+          deletingFileId={deletingFileId}
+          deletingDirectoryId={deletingDirectoryId}
+          user={user ?? null}
+          roomSocket={roomSocket}
+          onCreateFile={() => {
+            setCreateItemType('file');
+            setNewFileBaseName(buildNextFileBaseName(room.files));
+            setNewFileLanguage('TYPESCRIPT');
+            setIsCreateFileModalOpen(true);
+          }}
+          onCreateDirectory={() => {
+            setCreateItemType('directory');
+            setNewFileBaseName(buildNextDirectoryBaseName(room.directories));
+            setIsCreateFileModalOpen(true);
+          }}
+          onSelectFile={(fileId) => {
+            setSelectedFileId(fileId);
+          }}
+          onDownloadFile={(file) => {
+            void downloadFile(file.id, file.name);
+          }}
+          onDeleteFile={confirmDeleteFile}
+          onDeleteDirectory={confirmDeleteDirectory}
+          onMoveFile={(fileId, directoryId) => {
+            void handleMoveFile(fileId, directoryId);
+          }}
+          onMoveDirectory={(directoryId, parentId) => {
+            void handleMoveDirectory(directoryId, parentId);
+          }}
+        />
       </Box>
 
-      {confirmState ? (
-        <ConfirmModal
-          title={
-            confirmState.type === 'delete-room'
-              ? 'Удалить комнату'
-              : confirmState.type === 'delete-file'
-                ? 'Удалить файл'
-                : confirmState.type === 'delete-directory'
-                  ? 'Удалить папку'
-                  : 'Удалить участника'
+      <RoomConfirmState
+        confirmState={confirmState}
+        isDeletingRoom={isDeletingRoom}
+        removingParticipantId={removingParticipantId}
+        deletingFileId={deletingFileId}
+        deletingDirectoryId={deletingDirectoryId}
+        onCancel={() => {
+          if (
+            isDeletingRoom ||
+            removingParticipantId ||
+            deletingFileId ||
+            deletingDirectoryId
+          ) {
+            return;
           }
-          description={
-            confirmState.type === 'delete-room'
-              ? 'Вы точно хотите удалить комнату?'
-              : confirmState.type === 'delete-file'
-                ? `Вы точно хотите удалить файл ${confirmState.file.name}?`
-                : confirmState.type === 'delete-directory'
-                  ? `Вы точно хотите удалить папку ${confirmState.directory.name} вместе со всем содержимым?`
-                  : `Вы точно хотите удалить участника ${getParticipantName(
-                      confirmState.participant,
-                    )}?`
+
+          setConfirmState(null);
+        }}
+        onConfirm={() => {
+          void handleConfirmAction();
+        }}
+      />
+
+      <CreateItemModal
+        isOpen={isCreateFileModalOpen}
+        itemType={createItemType}
+        fileName={newFileBaseName}
+        fileExtension={getFileExtension(newFileLanguage)}
+        language={newFileLanguage}
+        isLoading={isCreatingFile}
+        onNameChange={setNewFileBaseName}
+        onLanguageChange={(value) => {
+          setNewFileLanguage(value);
+        }}
+        onCancel={() => {
+          if (isCreatingFile) {
+            return;
           }
-          isLoading={
-            confirmState.type === 'delete-room'
-              ? isDeletingRoom
-              : confirmState.type === 'delete-file'
-                ? deletingFileId === confirmState.file.id
-                : confirmState.type === 'delete-directory'
-                  ? deletingDirectoryId === confirmState.directory.id
-                  : removingParticipantId === confirmState.participant.id
+
+          setIsCreateFileModalOpen(false);
+        }}
+        onConfirm={() => {
+          if (createItemType === 'directory') {
+            void handleCreateDirectory();
+            return;
           }
-          onCancel={() => {
-            if (
-              isDeletingRoom ||
-              removingParticipantId ||
-              deletingFileId ||
-              deletingDirectoryId
-            ) {
-              return;
-            }
 
-            setConfirmState(null);
-          }}
-          onConfirm={() => {
-            void handleConfirmAction();
-          }}
-        />
-      ) : null}
-
-      {isCreateFileModalOpen ? (
-        <CreateFileModal
-          itemType={createItemType}
-          fileName={newFileBaseName}
-          fileExtension={getFileExtension(newFileLanguage)}
-          language={newFileLanguage}
-          isLoading={isCreatingFile}
-          onNameChange={setNewFileBaseName}
-          onLanguageChange={(value) => {
-            setNewFileLanguage(value);
-          }}
-          onCancel={() => {
-            if (isCreatingFile) {
-              return;
-            }
-
-            setIsCreateFileModalOpen(false);
-          }}
-          onConfirm={() => {
-            if (createItemType === 'directory') {
-              void handleCreateDirectory();
-              return;
-            }
-
-            void handleCreateFile();
-          }}
-        />
-      ) : null}
+          void handleCreateFile();
+        }}
+      />
     </>
   );
-}
-
-function getParticipantName(participant: {
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
-}) {
-  const fullName = [participant.firstName, participant.lastName]
-    .filter(Boolean)
-    .join(' ')
-    .trim();
-
-  return fullName || participant.email;
-}
-
-function buildNextFileBaseName(files: RoomFile[]) {
-  const nextIndex = files.length + 1;
-  return `main-${nextIndex}`;
-}
-
-function buildNextDirectoryBaseName(directories: Array<{ name: string }>) {
-  const nextIndex = directories.length + 1;
-  return `folder-${nextIndex}`;
-}
-
-function getFileExtension(language: RoomFile['language']) {
-  switch (language) {
-    case 'TYPESCRIPT':
-      return '.ts';
-    case 'JAVASCRIPT':
-      return '.js';
-    case 'PYTHON':
-      return '.py';
-    case 'JSON':
-      return '.json';
-    case 'HTML':
-      return '.html';
-    case 'CSS':
-      return '.css';
-    case 'MARKDOWN':
-      return '.md';
-    default:
-      return '.txt';
-  }
 }

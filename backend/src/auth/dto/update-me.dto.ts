@@ -19,6 +19,6 @@ export class UpdateMeDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(500)
+  @MaxLength(500000)
   avatarUrl?: string | null;
 }

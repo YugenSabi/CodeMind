@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomFile } from '@lib/files';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -27,6 +30,7 @@ export function CreateFileModal({
   onCancel,
   onConfirm,
 }: CreateFileModalProps): ReactNode {
+  const t = useTranslations('room');
   const isDirectory = itemType === 'directory';
 
   return (
@@ -57,18 +61,22 @@ export function CreateFileModal({
       >
         <Box flexDirection="column" gap={6}>
           <Text color="#FFFFFF" font="$rus" size={24} lineHeight="28px">
-            {isDirectory ? 'Создать папку' : 'Создать файл'}
+            {isDirectory
+              ? t('createModal.createDirectoryTitle')
+              : t('createModal.createFileTitle')}
           </Text>
           <Text color="#7D8793" font="$footer" size={13} lineHeight="18px">
             {isDirectory
-              ? 'Укажите название директории для комнаты.'
-              : 'Укажите имя и язык файла для комнаты.'}
+              ? t('createModal.createDirectoryDescription')
+              : t('createModal.createFileDescription')}
           </Text>
         </Box>
 
         <Box flexDirection="column" gap={8}>
           <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
-            {isDirectory ? 'Название папки' : 'Имя файла'}
+            {isDirectory
+              ? t('createModal.directoryNameLabel')
+              : t('createModal.fileNameLabel')}
           </Text>
           <Box
             alignItems="center"
@@ -91,7 +99,11 @@ export function CreateFileModal({
                     : stripFileExtension(event.target.value),
                 );
               }}
-              placeholder={isDirectory ? 'Например, components' : 'Например, main'}
+              placeholder={
+                isDirectory
+                  ? t('createModal.directoryPlaceholder')
+                  : t('createModal.filePlaceholder')
+              }
               style={{
                 ...getModalFieldStyles(),
                 flex: 1,
@@ -121,7 +133,7 @@ export function CreateFileModal({
         {!isDirectory ? (
           <Box flexDirection="column" gap={8}>
             <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
-              Язык
+              {t('createModal.languageLabel')}
             </Text>
             <Box position="relative" width="$full">
               <select
@@ -188,7 +200,7 @@ export function CreateFileModal({
             onClick={onCancel}
           >
             <Text color="#C7D0DB" font="$footer" size={13} lineHeight="16px">
-              Отмена
+              {t('createModal.cancel')}
             </Text>
           </Button>
 
@@ -204,7 +216,11 @@ export function CreateFileModal({
             onClick={onConfirm}
           >
             <Text color="#FFFFFF" font="$footer" size={13} lineHeight="16px">
-              {isLoading ? 'Создание...' : isDirectory ? 'Создать папку' : 'Создать'}
+              {isLoading
+                ? t('createModal.creating')
+                : isDirectory
+                  ? t('createModal.createDirectory')
+                  : t('createModal.create')}
             </Text>
           </Button>
         </Box>

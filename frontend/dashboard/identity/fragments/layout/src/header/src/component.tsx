@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { createLogoutFlow, getDisplayName, useAuthSession } from '@lib/auth';
 import { JoinArrowIcon } from '@fragments/join-room';
 import { Button } from '@ui/button';
@@ -23,11 +24,21 @@ export const MainHeader = (): ReactNode => {
         borderRadius={30}
         padding={20}
       >
-        <Box alignItems="center" color="#FFFFFF" aria-label="CodeMind">
-          <Text color="#FFFFFF" font="$eng" size={24}>
-            CodeMind
-          </Text>
-        </Box>
+        <Button
+          type="link"
+          href="/dashboard"
+          variant="ghost"
+          padding={0}
+          bg="transparent"
+          textColor="#FFFFFF"
+          aria-label="CodeMind"
+        >
+          <Box alignItems="center" color="#FFFFFF">
+            <Text color="#FFFFFF" font="$eng" size={24}>
+              CodeMind
+            </Text>
+          </Box>
+        </Button>
 
         {user ? <UserMenu user={user} /> : <GuestActions />}
       </Box>
@@ -36,6 +47,8 @@ export const MainHeader = (): ReactNode => {
 };
 
 function GuestActions(): ReactNode {
+  const t = useTranslations('layout.header');
+
   return (
     <Box alignItems="center" gap={10}>
       <Button
@@ -48,7 +61,7 @@ function GuestActions(): ReactNode {
         textColor="#FFFFFF"
       >
         <Text as="span" color="#FFFFFF" font="$footer" size={16}>
-          регистрация
+          {t('register')}
         </Text>
       </Button>
 
@@ -64,7 +77,7 @@ function GuestActions(): ReactNode {
         textColor="#FFFFFF"
       >
         <Text as="span" color="#FFFFFF" font="$footer" size={16} lineHeight="20px">
-          вход
+          {t('login')}
         </Text>
       </Button>
     </Box>
@@ -76,6 +89,7 @@ function UserMenu({
 }: {
   user: ReturnType<typeof useAuthSession>['user'] & { id: string };
 }): ReactNode {
+  const t = useTranslations('layout.header');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const name = getDisplayName(user);
   const initials = name.trim().charAt(0).toUpperCase() || 'U';
@@ -149,7 +163,7 @@ function UserMenu({
         borderRadius={15}
         disabled={isLoggingOut}
         onClick={handleLogout}
-        aria-label="Выйти из профиля"
+        aria-label={t('logoutAria')}
       >
         <JoinArrowIcon strokeColor="#D14343" maskId="logout-arrow-mask" />
       </Button>

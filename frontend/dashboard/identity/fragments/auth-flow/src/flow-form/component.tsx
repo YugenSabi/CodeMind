@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { type AuthFlowType, type KratosFlow, type KratosUiNode } from '@lib/auth';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -54,6 +55,7 @@ export function FlowForm({
   onConfirmPasswordChange,
   onResendVerification,
 }: FlowFormProps): ReactNode {
+  const t = useTranslations('authFlow.fields');
   const flowMessages = flow.ui.messages ?? [];
   const hiddenNodes = getHiddenNodes(flow.ui.nodes);
   const submitNode = flow.ui.nodes.find(
@@ -87,7 +89,7 @@ export function FlowForm({
             <Field
               node={node}
               flowType={flowType}
-              label={humanizeName(node.attributes.name)}
+              label={humanizeName(node.attributes.name, t)}
               defaultValue={toStringValue(node.attributes.value)}
               autoComplete={resolveAutoComplete(
                 node.attributes.name,

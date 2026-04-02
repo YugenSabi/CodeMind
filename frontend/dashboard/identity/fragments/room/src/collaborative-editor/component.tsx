@@ -5,6 +5,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import * as Y from 'yjs';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
@@ -17,11 +18,8 @@ import {
   reviewCurrentAlgorithmSolution,
 } from '@lib/rooms';
 import { Box } from '@ui/layout';
-import { Text } from '@ui/text';
 import { EditorHeader } from '../editor-header/component';
-import { TerminalPanel } from '../terminal-panel/component';
-import { AiAssistPanel } from './ai-assist-panel/component';
-import { AlgorithmTaskPanel } from './algorithm-task-panel/component';
+import { ErrorBanner } from './error-banner/component';
 import {
   applyAiResponseToEditor,
   getEditorContent,
@@ -31,6 +29,7 @@ import {
   normalizeAiCodeResponse,
 } from './editor-utils';
 import type { AlgorithmReview, CollaborativeEditorProps } from './types';
+import { Workspace } from './workspace/component';
 
 const DEFAULT_COLLAB_URL = 'ws://localhost:1234';
 
@@ -41,6 +40,7 @@ export function CollaborativeEditor({
   roomId,
   socket,
 }: CollaborativeEditorProps): ReactNode {
+  const t = useTranslations('room.editor');
   const [status, setStatus] = useState<
     'connecting' | 'connected' | 'disconnected' | 'error'
   >('connecting');
@@ -69,7 +69,6 @@ export function CollaborativeEditor({
   const [algorithmDifficulty, setAlgorithmDifficulty] = useState<
     'EASY' | 'MEDIUM' | 'HARD'
   >('MEDIUM');
-  const [algorithmTopic, setAlgorithmTopic] = useState('');
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
   const [isReviewingTask, setIsReviewingTask] = useState(false);
   const [algorithmReview, setAlgorithmReview] = useState<AlgorithmReview>(null);
@@ -120,9 +119,7 @@ export function CollaborativeEditor({
       } catch (error) {
         if (!cancelled) {
           setAiError(
-            error instanceof Error
-              ? error.message
-              : 'Не удалось загрузить AI-инструменты.',
+            error instanceof Error ? error.message : t('loadAiToolsFailed'),
           );
         }
       }
@@ -133,7 +130,7 @@ export function CollaborativeEditor({
     return () => {
       cancelled = true;
     };
-  }, [room.mode, roomId]);
+  }, [room.mode, roomId, t]);
 
   useEffect(() => {
     if (room.mode !== 'ALGORITHMS') {
@@ -152,9 +149,7 @@ export function CollaborativeEditor({
       } catch (error) {
         if (!cancelled) {
           setAiError(
-            error instanceof Error
-              ? error.message
-              : 'Не удалось загрузить активную задачу.',
+            error instanceof Error ? error.message : t('loadAlgorithmTaskFailed'),
           );
         }
       }
@@ -165,7 +160,7 @@ export function CollaborativeEditor({
     return () => {
       cancelled = true;
     };
-  }, [room.mode, roomId]);
+  }, [room.mode, roomId, t]);
 
   useEffect(() => {
     if (!editorRootRef.current) {
@@ -343,7 +338,7 @@ export function CollaborativeEditor({
     } catch (error) {
       setTerminalStatus('idle');
       setToolError(
-        error instanceof Error ? error.message : 'Не удалось выполнить код.',
+        error instanceof Error ? error.message : t('runCodeFailed'),
       );
     } finally {
       if (!socket) {
@@ -376,7 +371,7 @@ export function CollaborativeEditor({
       : currentCode.slice(selection.from, selection.to);
 
     if (!aiPrompt.trim()) {
-      setAiError('Опиши, что именно нужно сделать.');
+      setAiError(t('aiPromptRequired'));
       return;
     }
 
@@ -414,7 +409,7 @@ export function CollaborativeEditor({
           aiAction,
           normalizedResponse,
         );
-        setAiResponse('Код вставлен в редактор.');
+        setAiResponse(t('codeInserted'));
       } else {
         setAiResponse(response.response);
       }
@@ -442,11 +437,67 @@ export function CollaborativeEditor({
       ]);
     } catch (error) {
       setAiError(
-        error instanceof Error ? error.message : 'Не удалось получить ответ AI.',
+        error instanceof Error ? error.message : t('aiResponseFailed'),
       );
     } finally {
       setIsAiLoading(false);
     }
+  };
+
+  const formatAlgorithmTaskForEditor = (
+    task: NonNullable<typeof algorithmTask>,
+  ) => {
+    const examples = task.examples?.length
+      ? [
+          'Примеры:',
+          ...task.examples.map((example, index) =>
+            [
+              `${index + 1}. Вход:`,
+              example.input,
+              'Выход:',
+              example.output,
+              example.explanation ? `Пояснение: ${example.explanation}` : null,
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          ),
+        ].join('\n\n')
+      : null;
+    const hints = task.hints?.length
+      ? ['Подсказки:', ...task.hints.map((hint) => `- ${hint}`)].join('\n')
+      : null;
+    const sections = [
+      `Задача: ${task.title}`,
+      '',
+      task.problemStatement,
+      task.inputFormat ? `Формат ввода:\n${task.inputFormat}` : null,
+      task.outputFormat ? `Формат вывода:\n${task.outputFormat}` : null,
+      task.constraints ? `Ограничения:\n${task.constraints}` : null,
+      examples,
+      hints,
+      task.evaluationCriteria
+        ? `Критерии проверки:\n${task.evaluationCriteria}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    const commentBlock = `/*\n${sections
+      .split('\n')
+      .map((line) => (line.length > 0 ? ` * ${line}` : ' *'))
+      .join('\n')}\n */`;
+    const starterCode = task.starterCode?.trim() ?? '';
+
+    return `${commentBlock}\n\n${starterCode}`;
+  };
+
+  const extractAlgorithmSolution = (content: string) => {
+    const match = content.match(/^\s*\/\*[\s\S]*?\*\/\s*/);
+
+    if (!match) {
+      return content;
+    }
+
+    return content.slice(match[0].length).trim();
   };
 
   const handleGenerateTask = async () => {
@@ -457,13 +508,32 @@ export function CollaborativeEditor({
 
       const nextTask = await generateAlgorithmTask(roomId, {
         difficulty: algorithmDifficulty,
-        topic: algorithmTopic.trim() || undefined,
         preferredLanguage: file.language,
       });
 
+      const formattedTask = formatAlgorithmTaskForEditor(nextTask);
+      const editorView = editorViewRef.current;
+
+      if (editorView) {
+        editorView.dispatch({
+          changes: {
+            from: 0,
+            to: editorView.state.doc.length,
+            insert: formattedTask,
+          },
+          selection: {
+            anchor: formattedTask.length,
+            head: formattedTask.length,
+          },
+        });
+        editorView.focus();
+      }
+
       setAlgorithmTask(nextTask);
       setAiResponse(
-        `Сгенерирована новая задача: ${nextTask.title}. Открой условие и начинай решать.`,
+        t('taskGenerated', {
+          title: nextTask.title,
+        }),
       );
       setAiHistory((current) => [
         {
@@ -471,9 +541,9 @@ export function CollaborativeEditor({
           roomId,
           fileId: file.id,
           kind: 'ALGORITHM_TASK_GENERATED',
-          prompt: algorithmTopic.trim()
-            ? `Новая задача уровня ${algorithmDifficulty} по теме ${algorithmTopic.trim()}`
-            : `Новая задача уровня ${algorithmDifficulty}`,
+          prompt: t('taskPromptWithoutTopic', {
+            difficulty: algorithmDifficulty,
+          }),
           response: nextTask.problemStatement,
           metadata: null,
           actor: user
@@ -490,9 +560,7 @@ export function CollaborativeEditor({
       ]);
     } catch (error) {
       setAiError(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось сгенерировать задачу.',
+        error instanceof Error ? error.message : t('generateTaskFailed'),
       );
     } finally {
       setIsGeneratingTask(false);
@@ -506,7 +574,9 @@ export function CollaborativeEditor({
 
       const result = await reviewCurrentAlgorithmSolution(roomId, {
         fileId: file.id,
-        solutionCode: getEditorContent(editorViewRef.current, value),
+        solutionCode: extractAlgorithmSolution(
+          getEditorContent(editorViewRef.current, value),
+        ),
         language: file.language,
       });
 
@@ -518,7 +588,7 @@ export function CollaborativeEditor({
           roomId,
           fileId: file.id,
           kind: 'ALGORITHM_SOLUTION_REVIEWED',
-          prompt: `Проверка решения для ${result.task.title}`,
+          prompt: t('reviewPrompt', { title: result.task.title }),
           response: result.review.summary,
           metadata: null,
           actor: user
@@ -534,9 +604,7 @@ export function CollaborativeEditor({
         ...current,
       ]);
     } catch (error) {
-      setAiError(
-        error instanceof Error ? error.message : 'Не удалось проверить решение.',
-      );
+      setAiError(error instanceof Error ? error.message : t('reviewFailed'));
     } finally {
       setIsReviewingTask(false);
     }
@@ -564,7 +632,7 @@ export function CollaborativeEditor({
 
     editorView.focus();
     lastAiEditRef.current = null;
-    setAiResponse('Последняя AI-вставка отменена.');
+    setAiResponse(t('lastInsertRejected'));
   };
 
   return (
@@ -587,117 +655,39 @@ export function CollaborativeEditor({
         onStop={handleStop}
       />
 
-      <Box width="$full" minWidth={0} minHeight={0} gap={10} style={{ flex: 1 }}>
-        <Box
-          width="$full"
-          minWidth={0}
-          minHeight={0}
-          backgroundColor="#10151C"
-          border="1px solid"
-          borderColor="rgba(255,255,255,0.06)"
-          borderRadius={18}
-          padding={0}
-          overflow="hidden"
-          flexDirection="column"
-          style={{ flex: 1 }}
-        >
-          <Box
-            width="$full"
-            minWidth={0}
-            minHeight={0}
-            overflow="hidden"
-            style={{ flex: 1 }}
-          >
-            <div
-              ref={editorRootRef}
-              style={{
-                width: '100%',
-                maxWidth: '100%',
-                height: '100%',
-                overflow: 'hidden',
-              }}
-            />
-          </Box>
+      <Workspace
+        editorRootRef={editorRootRef}
+        terminalRootRef={terminalRootRef}
+        terminalStatus={terminalStatus}
+        canUseAi={canUseAi}
+        roomMode={room.mode}
+        algorithmTask={algorithmTask}
+        algorithmDifficulty={algorithmDifficulty}
+        isGeneratingTask={isGeneratingTask}
+        isReviewingTask={isReviewingTask}
+        review={algorithmReview}
+        aiAction={aiAction}
+        aiPrompt={aiPrompt}
+        aiResponse={aiResponse}
+        aiHistory={aiHistory}
+        isAiLoading={isAiLoading}
+        canReject={lastAiEditRef.current !== null}
+        onDifficultyChange={setAlgorithmDifficulty}
+        onGenerateTask={() => {
+          void handleGenerateTask();
+        }}
+        onReviewSolution={() => {
+          void handleReviewTaskSolution();
+        }}
+        onAiActionChange={setAiAction}
+        onAiPromptChange={setAiPrompt}
+        onAiSubmit={() => {
+          void handleAskAi();
+        }}
+        onAiReject={handleRejectAiInsert}
+      />
 
-          <TerminalPanel
-            terminalRootRef={terminalRootRef}
-            status={terminalStatus}
-          />
-        </Box>
-
-        {canUseAi ? (
-          <Box
-            width={340}
-            minWidth={340}
-            backgroundColor="#121720"
-            border="1px solid"
-            borderColor="rgba(255,255,255,0.06)"
-            borderRadius={18}
-            padding={14}
-            flexDirection="column"
-            gap={12}
-            overflow="auto"
-          >
-            <Text color="#FFFFFF" font="$rus" size={16} lineHeight="18px">
-              AI-помощник
-            </Text>
-
-            {room.mode === 'ALGORITHMS' ? (
-              <AlgorithmTaskPanel
-                task={algorithmTask}
-                difficulty={algorithmDifficulty}
-                topic={algorithmTopic}
-                isGeneratingTask={isGeneratingTask}
-                isReviewingTask={isReviewingTask}
-                review={algorithmReview}
-                onDifficultyChange={setAlgorithmDifficulty}
-                onTopicChange={setAlgorithmTopic}
-                onGenerateTask={() => {
-                  void handleGenerateTask();
-                }}
-                onReviewSolution={() => {
-                  void handleReviewTaskSolution();
-                }}
-              />
-            ) : null}
-
-            {(room.mode === 'JUST_CODING' || room.mode === 'ALGORITHMS') ? (
-              <AiAssistPanel
-                action={aiAction}
-                prompt={aiPrompt}
-                response={aiResponse}
-                history={aiHistory}
-                isLoading={isAiLoading}
-                canReject={lastAiEditRef.current !== null}
-                onActionChange={setAiAction}
-                onPromptChange={setAiPrompt}
-                onSubmit={() => {
-                  void handleAskAi();
-                }}
-                onReject={handleRejectAiInsert}
-              />
-            ) : null}
-          </Box>
-        ) : null}
-      </Box>
-
-      {toolError || aiError ? (
-        <Box
-          width="$full"
-          backgroundColor="rgba(209, 67, 67, 0.12)"
-          border="1px solid"
-          borderColor="#D14343"
-          borderRadius={18}
-          paddingTop={12}
-          paddingRight={14}
-          paddingBottom={12}
-          paddingLeft={14}
-        >
-          <Text color="#FFB4B4" font="$footer" size={13} lineHeight="18px">
-            {toolError ?? aiError}
-          </Text>
-        </Box>
-      ) : null}
+      <ErrorBanner message={toolError ?? aiError} />
     </Box>
   );
 }

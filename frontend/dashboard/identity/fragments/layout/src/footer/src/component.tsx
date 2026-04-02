@@ -1,8 +1,11 @@
 import { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
 export const MainFooter = (): ReactNode => {
+  const t = useTranslations('layout.footer');
+
   return (
     <Box width="$full" justifyContent="center">
       <Box
@@ -25,10 +28,10 @@ export const MainFooter = (): ReactNode => {
         paddingBottom={15}
       >
         <Text color="#FFFFFF" font="$footer" size={12}>
-          © CodeMind, 2026
+          {t('copyright')}
         </Text>
         <Text color="$secondaryText" font="$footer" size={10}>
-          powered by Olympians
+          {t('poweredBy')}
         </Text>
       </Box>
     </Box>

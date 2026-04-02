@@ -2,6 +2,7 @@
 
 import { type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthSession } from '@lib/auth';
 import { createRoom, type RoomMode } from '@lib/rooms';
 import { Button } from '@ui/button';
@@ -11,6 +12,7 @@ import { DashboardActions } from './dashboard-actions/component';
 import { HeroContent } from './hero-content/component';
 
 export function DashboardComponent(): ReactNode {
+  const t = useTranslations('dashboard');
   const router = useRouter();
   const { requiresVerification, verificationMessage } = useAuthSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -44,9 +46,7 @@ export function DashboardComponent(): ReactNode {
       router.push(`/room/${room.id}`);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось создать комнату. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('createFailed'),
       );
       setIsCreatingRoom(false);
     }
@@ -96,6 +96,8 @@ function VerificationRequiredCard({
   message: string | null;
   primaryHref: string;
 }) {
+  const t = useTranslations('dashboard');
+
   return (
     <Box
       width="$full"
@@ -113,7 +115,7 @@ function VerificationRequiredCard({
       gap={16}
     >
       <Text size={32} font="$rus" textAlign="center">
-        Подтвердите аккаунт
+        {t('verifyTitle')}
       </Text>
 
       <Text
@@ -122,7 +124,7 @@ function VerificationRequiredCard({
         textAlign="center"
         font="$footer"
       >
-        {message ?? 'Подтвердите почту, чтобы создавать комнаты и работать с кодом.'}
+        {message ?? t('verifyDescription')}
       </Text>
 
       <Button
@@ -136,7 +138,7 @@ function VerificationRequiredCard({
         bg="#43953D"
         textColor="#FFFFFF"
       >
-        <Text size={20}>Подтвердить аккаунт</Text>
+        <Text size={20}>{t('verifyButton')}</Text>
       </Button>
     </Box>
   );

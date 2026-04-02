@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Room, RoomParticipant, RoomSocketStatus } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -48,6 +51,8 @@ export function RoomToolbar({
   onToggleParticipants,
   onRemoveParticipant,
 }: RoomToolbarProps): ReactNode {
+  const t = useTranslations('room');
+
   return (
     <Box
       width="$full"
@@ -109,7 +114,7 @@ export function RoomToolbar({
             }}
           >
             <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
-              Editor
+              {t('toolbar.editorTab')}
             </Text>
           </Button>
 
@@ -131,7 +136,7 @@ export function RoomToolbar({
             }}
           >
             <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
-              Dashboard
+              {t('toolbar.dashboardTab')}
             </Text>
           </Button>
         </Box>
@@ -149,12 +154,14 @@ export function RoomToolbar({
           borderRadius={10}
           textColor="#FFFFFF"
           bg="transparent"
-          startIcon={<DownloadIcon width={16} height={16} color="#FFFFFF"/>}
+          startIcon={<DownloadIcon width={16} height={16} color="#FFFFFF" />}
           disabled={isDownloadingProject}
           onClick={onDownloadProject}
         >
           <Text color="#FFFFFF" font="$footer" size={12}>
-            {isDownloadingProject ? 'Загрузка...' : 'Скачать проект'}
+            {isDownloadingProject
+              ? t('toolbar.downloadProjectLoading')
+              : t('toolbar.downloadProject')}
           </Text>
         </Button>
 
@@ -174,7 +181,9 @@ export function RoomToolbar({
             onClick={onDeleteRoom}
           >
             <Text color="#D89A9A" font="$footer" size={12} lineHeight="14px">
-              {isDeletingRoom ? 'Удаление...' : 'Удалить комнату'}
+              {isDeletingRoom
+                ? t('toolbar.deleteRoomLoading')
+                : t('toolbar.deleteRoom')}
             </Text>
           </Button>
         ) : null}
@@ -194,7 +203,7 @@ export function RoomToolbar({
           onClick={onToggleParticipants}
         >
           <Text color="#FFFFFF" font="$footer" size={12} lineHeight="14px">
-            Участники
+            {t('toolbar.participants')}
           </Text>
         </Button>
 

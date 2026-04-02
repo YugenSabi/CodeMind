@@ -1,5 +1,304 @@
 {
   "generator": {
     "title": "Created by Olympians Generator"
+  },
+  "profile": {
+    "state": {
+      "loadFailed": "Не удалось загрузить профиль.",
+      "signInFirst": "Сначала войдите в аккаунт.",
+      "notFound": "Профиль не найден.",
+      "verifyTitle": "Подтвердите аккаунт",
+      "verifyDescription": "Подтвердите почту, чтобы открыть профиль и управлять комнатами.",
+      "loadingTitle": "Загружаем профиль",
+      "loadingDescription": "Получаем данные пользователя и комнат.",
+      "errorTitle": "Не удалось открыть профиль",
+      "errorDescription": "Профиль недоступен."
+    },
+    "common": {
+      "fallbackUser": "Пользователь CodeMind",
+      "registrationDate": "Дата регистрации",
+      "rooms": "Комнаты",
+      "remainingRooms": "Можно создать ещё"
+    },
+    "mode": {
+      "justCoding": "Just coding",
+      "interviews": "Интервью",
+      "algorithms": "Алгоритмы"
+    },
+    "messages": {
+      "updated": "Профиль обновлён.",
+      "updateFailed": "Не удалось обновить профиль.",
+      "imageOnly": "Можно загрузить только изображение.",
+      "avatarTooLarge": "Аватарка должна быть меньше 350 КБ.",
+      "imageLoaded": "Изображение загружено. Сохраните профиль.",
+      "imageReadFailed": "Не удалось прочитать изображение.",
+      "deleteRoomFailed": "Не удалось удалить комнату.",
+      "avatarPendingRemoval": "Аватар будет удалён после сохранения."
+    },
+    "own": {
+      "defaultTitle": "Мой профиль",
+      "subtitle": "Личный кабинет, аватар и ваши комнаты",
+      "title": "Данные профиля",
+      "subtitleForm": "Изменения сразу применяются в комнате и публичном профиле.",
+      "firstNameLabel": "Имя",
+      "firstNamePlaceholder": "Например, Иван",
+      "lastNameLabel": "Фамилия",
+      "lastNamePlaceholder": "Например, Петров",
+      "save": "Сохранить",
+      "saving": "Сохраняем...",
+      "roomsTitle": "Мои комнаты",
+      "roomsSubtitle": "Удаление доступно только владельцу. На один аккаунт можно держать максимум две комнаты.",
+      "emptyRooms": "У вас пока нет комнат."
+    },
+    "avatar": {
+      "label": "Аватарка",
+      "description": "Выберите изображение. Оно загрузится в профиль и будет видно в комнате и публичном профиле.",
+      "upload": "Загрузить файл",
+      "uploading": "Загрузка...",
+      "remove": "Убрать",
+      "ready": "Новая аватарка подготовлена. Нажмите «Сохранить»."
+    },
+    "roomsList": {
+      "summary": "{mode} · участников {membersCount} · файлов {filesCount}",
+      "createdAt": "Создана {date}",
+      "open": "Открыть",
+      "delete": "Удалить",
+      "deleting": "Удаление..."
+    },
+    "public": {
+      "subtitle": "Публичный профиль участника CodeMind",
+      "algorithmRooms": "Algorithm rooms",
+      "roomsTitle": "Публичные комнаты",
+      "roomsSubtitle": "Здесь видны комнаты, которые пользователь создал в системе.",
+      "emptyRooms": "У пользователя пока нет комнат."
+    }
+  },
+  "room": {
+    "state": {
+      "verifyTitle": "Подтвердите аккаунт",
+      "verifyDescription": "Без подтверждения почты совместное редактирование недоступно.",
+      "loadingTitle": "Загрузка комнаты",
+      "loadingDescription": "Подготавливаем комнату и загружаем участников.",
+      "unavailableTitle": "Комната недоступна",
+      "unavailableDescription": "Не удалось открыть комнату."
+    },
+    "errors": {
+      "loadRoom": "Не удалось загрузить комнату. Попробуйте еще раз.",
+      "loadDashboard": "Не удалось загрузить dashboard комнаты.",
+      "copyRoomCode": "Не удалось скопировать код комнаты. Попробуйте еще раз.",
+      "downloadProject": "Не удалось скачать проект. Попробуйте еще раз.",
+      "deleteRoom": "Не удалось удалить комнату. Попробуйте еще раз.",
+      "deleteFile": "Не удалось удалить файл. Попробуйте еще раз.",
+      "deleteDirectory": "Не удалось удалить папку. Попробуйте еще раз.",
+      "removeParticipant": "Не удалось удалить участника. Попробуйте еще раз.",
+      "fileNameRequired": "Введите название файла",
+      "createFile": "Не удалось создать файл. Попробуйте еще раз.",
+      "directoryNameRequired": "Введите название папки",
+      "createDirectory": "Не удалось создать папку. Попробуйте еще раз.",
+      "moveFile": "Не удалось переместить файл. Попробуйте еще раз.",
+      "moveDirectory": "Не удалось переместить папку. Попробуйте еще раз."
+    },
+    "toolbar": {
+      "downloadProject": "Скачать проект",
+      "downloadProjectLoading": "Загрузка...",
+      "deleteRoom": "Удалить комнату",
+      "deleteRoomLoading": "Удаление...",
+      "participants": "Участники",
+      "editorTab": "Editor",
+      "dashboardTab": "Dashboard"
+    },
+    "roomCode": {
+      "label": "Код комнаты",
+      "copyAria": "Скопировать код комнаты",
+      "copiedAria": "Код комнаты скопирован"
+    },
+    "sidebar": {
+      "title": "EXPLORER",
+      "empty": "В комнате пока нет файлов и папок. Создайте первый элемент проекта, и он сразу откроется в редакторе."
+    },
+    "content": {
+      "noFileTitle": "Файл не выбран",
+      "noFileDescription": "Создайте файл в комнате и здесь откроется редактор."
+    },
+    "confirm": {
+      "cancel": "Отмена",
+      "confirm": "Удалить",
+      "loading": "Удаление...",
+      "deleteRoomTitle": "Удалить комнату",
+      "deleteFileTitle": "Удалить файл",
+      "deleteDirectoryTitle": "Удалить папку",
+      "removeParticipantTitle": "Удалить участника",
+      "deleteRoomDescription": "Вы точно хотите удалить комнату?",
+      "deleteFileDescription": "Вы точно хотите удалить файл {name}?",
+      "deleteDirectoryDescription": "Вы точно хотите удалить папку {name} вместе со всем содержимым?",
+      "removeParticipantDescription": "Вы точно хотите удалить участника {name}?"
+    },
+    "createModal": {
+      "createDirectoryTitle": "Создать папку",
+      "createFileTitle": "Создать файл",
+      "createDirectoryDescription": "Укажите название директории для комнаты.",
+      "createFileDescription": "Укажите имя и язык файла для комнаты.",
+      "directoryNameLabel": "Название папки",
+      "fileNameLabel": "Имя файла",
+      "directoryPlaceholder": "Например, components",
+      "filePlaceholder": "Например, main",
+      "languageLabel": "Язык",
+      "cancel": "Отмена",
+      "create": "Создать",
+      "createDirectory": "Создать папку",
+      "creating": "Создание..."
+    },
+    "participants": {
+      "roomCodeLabel": "Код комнаты",
+      "ownerLabel": "Владелец",
+      "removeParticipantAria": "Удалить участника {name}",
+      "connection": {
+        "connected": "Подключено",
+        "connecting": "Подключение...",
+        "error": "Ошибка подключения",
+        "idle": "Ожидание подключения"
+      }
+    },
+    "statusChip": {
+      "connecting": "Подключение к редактору...",
+      "connected": "Редактор подключен",
+      "disconnected": "Редактор отключен",
+      "error": "Ошибка auth/editor"
+    },
+    "editor": {
+      "aiAssistantTitle": "AI-помощник",
+      "loadAiToolsFailed": "Не удалось загрузить AI-инструменты.",
+      "loadAlgorithmTaskFailed": "Не удалось загрузить активную задачу.",
+      "runCodeFailed": "Не удалось выполнить код.",
+      "aiPromptRequired": "Опиши, что именно нужно сделать.",
+      "codeInserted": "Код вставлен в редактор.",
+      "aiResponseFailed": "Не удалось получить ответ AI.",
+      "taskGenerated": "Сгенерирована новая задача: {title}. Открой условие и начинай решать.",
+      "taskPromptWithTopic": "Новая задача уровня {difficulty} по теме {topic}",
+      "taskPromptWithoutTopic": "Новая задача уровня {difficulty}",
+      "generateTaskFailed": "Не удалось сгенерировать задачу.",
+      "reviewPrompt": "Проверка решения для {title}",
+      "reviewFailed": "Не удалось проверить решение.",
+      "lastInsertRejected": "Последняя AI-вставка отменена.",
+      "helpCurrentFile": "Помощь по текущему файлу",
+      "actionGenerate": "Сгенерировать код по инструкции",
+      "actionComplete": "Дополнить код у курсора",
+      "actionImprove": "Улучшить выделенный код",
+      "actionReview": "Сделать ревью выделенного кода",
+      "actionExplain": "Объяснить выделенный код",
+      "promptPlaceholder": "Например: найди уязвимости, предложи рефакторинг, допиши функцию...",
+      "askAi": "Спросить AI",
+      "aiThinking": "AI думает...",
+      "result": "Результат",
+      "rejectInsert": "Отменить AI-вставку",
+      "history": "История AI",
+      "algorithmMode": "Алгоритмический режим",
+      "taskTopicPlaceholder": "Тема задачи, например graph, dp, arrays",
+      "generateTask": "Сгенерировать задачу",
+      "generatingTask": "Генерация...",
+      "constraints": "Ограничения: {constraints}",
+      "reviewSolution": "Проверить решение",
+      "reviewingSolution": "Проверка...",
+      "reviewTitle": "Ревью решения",
+      "reviewStatus": "Статус: {status}",
+      "reviewStatusPassed": "задача решена",
+      "reviewStatusFailed": "нужно доработать",
+      "reviewScore": "Оценка: {score}"
+    },
+    "dashboard": {
+      "loadingTitle": "Загрузка dashboard",
+      "loadingDescription": "Собираем последние изменения по комнате.",
+      "unavailableTitle": "Dashboard недоступен",
+      "emptyTitle": "Пока нет событий",
+      "emptyDescription": "Когда участники начнут создавать и редактировать файлы, здесь появится лента изменений.",
+      "title": "Dashboard",
+      "subtitle": "Последние изменения и действия в комнате.",
+      "fileMeta": "{name} · {language}",
+      "badgeCreated": "Создание",
+      "badgeUpdated": "Изменение",
+      "badgeJoined": "Подключение",
+      "actorCreated": "{name} создал файл",
+      "actorUpdated": "{name} обновил файл",
+      "actorOpened": "{name} открыл файл для совместной работы",
+      "unknownActor": "Кто-то"
+    }
+  },
+  "authError": {
+    "title": "Ошибка авторизации",
+    "description": "Не удалось завершить авторизацию. Проверьте данные и повторите попытку.",
+    "errorCode": "Код ошибки: {id}"
+  },
+  "joinRoom": {
+    "joinFailed": "Не удалось присоединиться к комнате. Попробуйте еще раз.",
+    "verifyTitle": "Подтвердите аккаунт",
+    "verifyDescription": "Без подтверждения почты вход в комнату недоступен.",
+    "enterCode": "Введите код комнаты:",
+    "placeholder": "Код комнаты",
+    "joinAria": "Войти в комнату"
+  },
+  "layout": {
+    "header": {
+      "register": "Регистрация",
+      "login": "Вход",
+      "logoutAria": "Выйти"
+    },
+    "footer": {
+      "copyright": "© CodeMind, 2026",
+      "poweredBy": "powered by Olympians"
+    }
+  },
+  "authFlow": {
+    "loadFailed": "Не удалось загрузить форму. Попробуйте еще раз.",
+    "repeatPasswordRequired": "Повторите пароль.",
+    "passwordMismatch": "Пароли не совпадают.",
+    "loading": "Загрузка формы...",
+    "verifiedInfo": "Почта подтверждена. Теперь войдите в аккаунт.",
+    "resending": "Отправка...",
+    "resendLabel": "Отправить код повторно",
+    "resendLabelWithEmail": "Отправить код повторно на {email}",
+    "checkEmail": "Проверьте письмо, отправленное на указанную почту.",
+    "resendFailed": "Не удалось отправить письмо повторно.",
+    "resendSuccess": "Письмо отправлено повторно.",
+    "resendSuccessWithEmail": "Письмо повторно отправлено на {email}.",
+    "fields": {
+      "email": "Электронная почта",
+      "password": "Пароль",
+      "firstName": "Имя",
+      "lastName": "Фамилия",
+      "code": "Код подтверждения",
+      "confirmPassword": "Повторите пароль",
+      "showPassword": "Показать пароль",
+      "hidePassword": "Скрыть пароль"
+    }
+  },
+  "dashboard": {
+    "createFailed": "Не удалось создать комнату. Попробуйте еще раз.",
+    "verifyTitle": "Подтвердите аккаунт",
+    "verifyDescription": "Подтвердите почту, чтобы создавать комнаты и работать с кодом.",
+    "verifyButton": "Подтвердить аккаунт",
+    "actions": {
+      "creating": "Создание...",
+      "createRoom": "Создать комнату",
+      "join": "Присоединиться"
+    },
+    "hero": {
+      "titleLine1": "Платформа для совместной",
+      "titleLine2": "работы над кодом с AI-ревьюером",
+      "descriptionLine1": "Пишите код вместе, отслеживайте изменения и получайте AI-подсказки",
+      "descriptionLine2": "прямо в редакторе."
+    },
+    "roomModePicker": {
+      "title": "Выберите формат комнаты",
+      "description": "Режим задает правила работы с файлами и папками внутри комнаты.",
+      "cancel": "Отмена",
+      "modes": {
+        "justCodingDescription": "Комната для совместной работы с файлами, папками и запуском кода.",
+        "interviewsDescription": "Формат комнаты специально создан для собеседований, в котором интервьюер полностью управляет проектом.",
+        "algorithmsDescription": "Совместное решение алгоритмических задач для вашего обучения.",
+        "justCodingTitle": "Just coding",
+        "interviewsTitle": "Interviews",
+        "algorithmsTitle": "Algorithms"
+      }
+    }
   }
 }

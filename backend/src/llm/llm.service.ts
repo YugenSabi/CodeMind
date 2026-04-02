@@ -119,7 +119,9 @@ export class LlmService {
       prompt: [
         `Difficulty: ${input.difficulty}`,
         `Preferred language: ${input.preferredLanguage}`,
-        input.topic ? `Topic: ${input.topic}` : 'Topic: any algorithmic topic',
+        input.topic
+          ? `Topic: ${input.topic}`
+          : 'Topic: choose a random algorithmic topic yourself',
         '',
         'Return JSON with this exact shape:',
         '{"title":"string","problemStatement":"string","inputFormat":"string","outputFormat":"string","constraints":"string","starterCode":"string","examples":[{"input":"string","output":"string","explanation":"string"}],"hints":["string"],"evaluationCriteria":"string"}',

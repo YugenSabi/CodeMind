@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomMode } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -22,6 +25,8 @@ export function DashboardActions({
   onCloseModePicker,
   onCreateRoom,
 }: DashboardActionsProps): ReactNode {
+  const t = useTranslations('dashboard.actions');
+
   return (
     <>
       <Box flexDirection="row" gap={10} padding={10}>
@@ -38,7 +43,7 @@ export function DashboardActions({
           onClick={onOpenModePicker}
         >
           <Text size={24}>
-            {isCreatingRoom ? 'Создание...' : 'Создать комнату'}
+            {isCreatingRoom ? t('creating') : t('createRoom')}
           </Text>
         </Button>
 
@@ -53,7 +58,7 @@ export function DashboardActions({
           borderRadius={45}
           textColor="#FFFFFF"
         >
-          <Text size={24}>Присоединиться</Text>
+          <Text size={24}>{t('join')}</Text>
         </Button>
       </Box>
 

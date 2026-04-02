@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthSession } from '@lib/auth';
 import { joinRoom } from '@lib/rooms';
 import { Input } from '@ui/input';
@@ -9,6 +10,7 @@ import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
 export function JoinRoomComponent(): ReactNode {
+  const t = useTranslations('joinRoom');
   const router = useRouter();
   const { requiresVerification, verificationMessage } = useAuthSession();
   const [code, setCode] = useState('');
@@ -30,9 +32,7 @@ export function JoinRoomComponent(): ReactNode {
       router.push(`/room/${room.id}`);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Не удалось присоединиться к комнате. Попробуйте еще раз.',
+        error instanceof Error ? error.message : t('joinFailed'),
       );
       setIsJoining(false);
     }
@@ -61,7 +61,7 @@ export function JoinRoomComponent(): ReactNode {
           padding={24}
         >
           <Text color="#FFFFFF" font="$rus" size={24} textAlign="center">
-            Подтвердите аккаунт
+            {t('verifyTitle')}
           </Text>
           <Text
             color="$secondaryText"
@@ -70,8 +70,7 @@ export function JoinRoomComponent(): ReactNode {
             lineHeight="22px"
             textAlign="center"
           >
-            {verificationMessage ??
-              'Без подтверждения почты вход в комнату недоступен.'}
+            {verificationMessage ?? t('verifyDescription')}
           </Text>
         </Box>
       </Box>
@@ -94,7 +93,7 @@ export function JoinRoomComponent(): ReactNode {
         padding={15}
       >
         <Text color="#FFFFFF" font="$rus" size={20} textAlign="center">
-          Введите код комнаты:
+          {t('enterCode')}
         </Text>
 
         <Input
@@ -116,6 +115,7 @@ export function JoinRoomComponent(): ReactNode {
           bg="$mainCards"
           endIcon={
             <JoinArrowButton
+              ariaLabel={t('joinAria')}
               disabled={isJoining || code.trim().length === 0}
               onClick={() => {
                 void handleJoin();
@@ -126,7 +126,7 @@ export function JoinRoomComponent(): ReactNode {
           style={{
             borderRadius: '20px',
           }}
-          placeholder="Код комнаты"
+          placeholder={t('placeholder')}
           placeholderColor="$secondaryText"
           autoComplete="off"
           spellCheck={false}
@@ -155,11 +155,13 @@ export function JoinRoomComponent(): ReactNode {
 }
 
 type JoinArrowButtonProps = {
+  ariaLabel: string;
   disabled?: boolean;
   onClick: () => void;
 };
 
 function JoinArrowButton({
+  ariaLabel,
   disabled = false,
   onClick,
 }: JoinArrowButtonProps): ReactNode {
@@ -180,7 +182,7 @@ function JoinArrowButton({
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}
-      aria-label="Войти в комнату"
+      aria-label={ariaLabel}
     >
       <JoinArrowIcon />
     </button>

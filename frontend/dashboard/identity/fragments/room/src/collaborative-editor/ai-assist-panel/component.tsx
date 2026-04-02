@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 import type { AiAssistPanelProps } from '../types';
@@ -20,10 +23,12 @@ export function AiAssistPanel({
   onSubmit,
   onReject,
 }: AiAssistPanelProps) {
+  const t = useTranslations('room.editor');
+
   return (
     <Box flexDirection="column" gap={10}>
       <Text color="#AEB7C2" font="$footer" size={12} lineHeight="16px">
-        Помощь по текущему файлу
+        {t('helpCurrentFile')}
       </Text>
 
       <select
@@ -33,13 +38,11 @@ export function AiAssistPanel({
         }}
         style={selectStyles}
       >
-        <option value="GENERATE_FROM_INSTRUCTION">
-          Сгенерировать код по инструкции
-        </option>
-        <option value="CURSOR_COMPLETE">Дополнить код у курсора</option>
-        <option value="SELECTION_IMPROVE">Улучшить выделенный код</option>
-        <option value="SELECTION_REVIEW">Сделать ревью выделенного кода</option>
-        <option value="SELECTION_EXPLAIN">Объяснить выделенный код</option>
+        <option value="GENERATE_FROM_INSTRUCTION">{t('actionGenerate')}</option>
+        <option value="CURSOR_COMPLETE">{t('actionComplete')}</option>
+        <option value="SELECTION_IMPROVE">{t('actionImprove')}</option>
+        <option value="SELECTION_REVIEW">{t('actionReview')}</option>
+        <option value="SELECTION_EXPLAIN">{t('actionExplain')}</option>
       </select>
 
       <textarea
@@ -47,12 +50,12 @@ export function AiAssistPanel({
         onChange={(event) => {
           onPromptChange(event.target.value);
         }}
-        placeholder="Например: найди уязвимости, предложи рефакторинг, допиши функцию..."
+        placeholder={t('promptPlaceholder')}
         style={textareaStyles}
       />
 
       <button onClick={onSubmit} disabled={isLoading} style={primaryButtonStyles}>
-        {isLoading ? 'AI думает...' : 'Спросить AI'}
+        {isLoading ? t('aiThinking') : t('askAi')}
       </button>
 
       {response ? (
@@ -66,7 +69,7 @@ export function AiAssistPanel({
           gap={8}
         >
           <Text color="#FFFFFF" font="$rus" size={14} lineHeight="18px">
-            Результат
+            {t('result')}
           </Text>
           <Text
             color="#D7DEE7"
@@ -79,7 +82,7 @@ export function AiAssistPanel({
           </Text>
           {canReject ? (
             <button onClick={onReject} style={secondaryButtonStyles}>
-              Отменить AI-вставку
+              {t('rejectInsert')}
             </button>
           ) : null}
         </Box>
@@ -88,7 +91,7 @@ export function AiAssistPanel({
       {history.length > 0 ? (
         <Box flexDirection="column" gap={8}>
           <Text color="#AEB7C2" font="$footer" size={12} lineHeight="16px">
-            История AI
+            {t('history')}
           </Text>
           {history.slice(0, 4).map((item) => (
             <Box

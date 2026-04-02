@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
@@ -7,11 +10,13 @@ type StatusChipProps = {
 };
 
 export function StatusChip({ status }: StatusChipProps): ReactNode {
+  const t = useTranslations('room');
+
   const labelByStatus = {
-    connecting: 'Подключение к редактору...',
-    connected: 'Редактор подключен',
-    disconnected: 'Редактор отключен',
-    error: 'Ошибка auth/editor',
+    connecting: t('statusChip.connecting'),
+    connected: t('statusChip.connected'),
+    disconnected: t('statusChip.disconnected'),
+    error: t('statusChip.error'),
   } as const;
 
   return (

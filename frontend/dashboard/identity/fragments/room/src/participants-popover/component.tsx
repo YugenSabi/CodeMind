@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomParticipant, RoomSocketStatus } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -25,6 +28,8 @@ export function ParticipantsPopover({
   removingParticipantId,
   onRemoveParticipant,
 }: ParticipantsPopoverProps): ReactNode {
+  const t = useTranslations('room');
+
   return (
     <Box
       position="absolute"
@@ -48,7 +53,7 @@ export function ParticipantsPopover({
         borderColor="rgba(255,255,255,0.06)"
       >
         <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
-          Код комнаты
+          {t('participants.roomCodeLabel')}
         </Text>
         <Text color="#FFFFFF" font="$rus" size={20} lineHeight="24px">
           {roomCode}
@@ -72,7 +77,8 @@ export function ParticipantsPopover({
 }
 
 export function ConnectionBadge({ status }: ConnectionBadgeProps): ReactNode {
-  const config = getConnectionStatusConfig(status);
+  const t = useTranslations('room');
+  const config = getConnectionStatusConfig(status, t);
 
   return (
     <Box
@@ -123,6 +129,8 @@ function ParticipantMenuItem({
   isRemoving: boolean;
   onRemoveParticipant: (participant: RoomParticipant) => void;
 }): ReactNode {
+  const t = useTranslations('room');
+
   return (
     <Box
       width="$full"
@@ -176,7 +184,7 @@ function ParticipantMenuItem({
               </Text>
               {isOwner ? (
                 <Text color="#7BC77A" font="$footer" size={11} lineHeight="14px">
-                  Владелец
+                  {t('participants.ownerLabel')}
                 </Text>
               ) : (
                 <Text color="#7D8793" font="$footer" size={11} lineHeight="14px">
@@ -206,9 +214,11 @@ function ParticipantMenuItem({
           onClick={() => {
             onRemoveParticipant(participant);
           }}
-          aria-label={`Удалить участника ${getParticipantName(participant)}`}
+          aria-label={t('participants.removeParticipantAria', {
+            name: getParticipantName(participant),
+          })}
         >
-          <Text color="#B88D8D" font="$footer" size={18} >
+          <Text color="#B88D8D" font="$footer" size={18}>
             {isRemoving ? '...' : '−'}
           </Text>
         </Button>
@@ -217,32 +227,35 @@ function ParticipantMenuItem({
   );
 }
 
-function getConnectionStatusConfig(status: RoomSocketStatus) {
+function getConnectionStatusConfig(
+  status: RoomSocketStatus,
+  t: ReturnType<typeof useTranslations>,
+) {
   switch (status) {
     case 'connected':
       return {
-        label: 'Подключено',
+        label: t('participants.connection.connected'),
         backgroundColor: 'rgba(67, 149, 61, 0.12)',
         borderColor: '#43953D',
         textColor: '#B7F3B3',
       };
     case 'connecting':
       return {
-        label: 'Подключение...',
+        label: t('participants.connection.connecting'),
         backgroundColor: 'rgba(145, 152, 161, 0.08)',
         borderColor: '#383F47',
         textColor: '#FFFFFF',
       };
     case 'error':
       return {
-        label: 'Ошибка подключения',
+        label: t('participants.connection.error'),
         backgroundColor: 'rgba(209, 67, 67, 0.12)',
         borderColor: '#D14343',
         textColor: '#FFB4B4',
       };
     default:
       return {
-        label: 'Ожидание подключения',
+        label: t('participants.connection.idle'),
         backgroundColor: 'rgba(145, 152, 161, 0.08)',
         borderColor: '#383F47',
         textColor: '#FFFFFF',

@@ -109,7 +109,17 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     return null as T;
   }
 
-  return response.json() as Promise<T>;
+  const contentLength = response.headers.get('Content-Length');
+  if (contentLength === '0') {
+    return null as T;
+  }
+
+  const raw = await response.text();
+  if (!raw.trim()) {
+    return null as T;
+  }
+
+  return JSON.parse(raw) as T;
 }
 
 async function getErrorMessage(response: Response) {

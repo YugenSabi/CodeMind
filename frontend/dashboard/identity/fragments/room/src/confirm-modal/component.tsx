@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -18,6 +21,8 @@ export function ConfirmModal({
   onCancel,
   onConfirm,
 }: ConfirmModalProps): ReactNode {
+  const t = useTranslations('room');
+
   return (
     <Box
       position="fixed"
@@ -68,7 +73,7 @@ export function ConfirmModal({
             onClick={onCancel}
           >
             <Text color="#C7D0DB" font="$footer" size={13} lineHeight="16px">
-              Отмена
+              {t('confirm.cancel')}
             </Text>
           </Button>
 
@@ -86,7 +91,7 @@ export function ConfirmModal({
             onClick={onConfirm}
           >
             <Text color="#E5B3B3" font="$footer" size={13} lineHeight="16px">
-              {isLoading ? 'Удаление...' : 'Удалить'}
+              {isLoading ? t('confirm.loading') : t('confirm.confirm')}
             </Text>
           </Button>
         </Box>

@@ -1,14 +1,19 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
 
 export function HeroContent(): ReactNode {
+  const t = useTranslations('dashboard.hero');
+
   return (
     <Box flexDirection="column" gap={10}>
       <Text size={36} font="$rus" textAlign="center">
-        Платформа для совместной
+        {t('titleLine1')}
         <br />
-        работы над кодом с AI-ревьюером
+        {t('titleLine2')}
       </Text>
 
       <Text
@@ -17,9 +22,9 @@ export function HeroContent(): ReactNode {
         textAlign="center"
         font="$footer"
       >
-        Пишите код вместе, отслеживайте изменения и получайте AI-подсказки
+        {t('descriptionLine1')}
         <br />
-        прямо в редакторе.
+        {t('descriptionLine2')}
       </Text>
     </Box>
   );

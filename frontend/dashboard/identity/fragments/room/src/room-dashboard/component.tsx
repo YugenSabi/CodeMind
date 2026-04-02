@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomDashboardItem } from '@lib/rooms';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
@@ -14,24 +17,32 @@ export function RoomDashboard({
   isLoading,
   errorMessage,
 }: RoomDashboardProps): ReactNode {
+  const t = useTranslations('room.dashboard');
+
   if (isLoading) {
     return (
       <PanelState
-        title="Загрузка dashboard"
-        description="Собираем последние изменения по комнате."
+        title={t('loadingTitle')}
+        description={t('loadingDescription')}
       />
     );
   }
 
   if (errorMessage) {
-    return <PanelState title="Dashboard недоступен" description={errorMessage} tone="error" />;
+    return (
+      <PanelState
+        title={t('unavailableTitle')}
+        description={errorMessage}
+        tone="error"
+      />
+    );
   }
 
   if (items.length === 0) {
     return (
       <PanelState
-        title="Пока нет событий"
-        description="Когда участники начнут создавать и редактировать файлы, здесь появится лента изменений."
+        title={t('emptyTitle')}
+        description={t('emptyDescription')}
       />
     );
   }
@@ -51,10 +62,10 @@ export function RoomDashboard({
     >
       <Box flexDirection="column" gap={4}>
         <Text color="#FFFFFF" font="$rus" size={22} lineHeight="26px">
-          Dashboard
+          {t('title')}
         </Text>
         <Text color="#7D8793" font="$footer" size={13} lineHeight="18px">
-          Последние изменения и действия в комнате.
+          {t('subtitle')}
         </Text>
       </Box>
 
@@ -68,6 +79,8 @@ export function RoomDashboard({
 }
 
 function DashboardItem({ item }: { item: RoomDashboardItem }): ReactNode {
+  const t = useTranslations('room.dashboard');
+
   return (
     <Box
       width="$full"
@@ -84,12 +97,15 @@ function DashboardItem({ item }: { item: RoomDashboardItem }): ReactNode {
         <Box alignItems="center" gap={8} flexWrap="wrap">
           <EventBadge type={item.type} />
           <Text color="#D7DEE7" font="$footer" size={14} lineHeight="18px">
-            {buildEventTitle(item)}
+            {buildEventTitle(item, t)}
           </Text>
         </Box>
 
         <Text color="#7D8793" font="$footer" size={12} lineHeight="16px">
-          {item.file.name} · {item.file.language}
+          {t('fileMeta', {
+            name: item.file.name,
+            language: item.file.language,
+          })}
         </Text>
       </Box>
 
@@ -105,7 +121,8 @@ function EventBadge({
 }: {
   type: RoomDashboardItem['type'];
 }): ReactNode {
-  const config = getEventConfig(type);
+  const t = useTranslations('room.dashboard');
+  const config = getEventConfig(type, t);
 
   return (
     <Box
@@ -164,25 +181,28 @@ function PanelState({
   );
 }
 
-function getEventConfig(type: RoomDashboardItem['type']) {
+function getEventConfig(
+  type: RoomDashboardItem['type'],
+  t: ReturnType<typeof useTranslations>,
+) {
   switch (type) {
     case 'FILE_CREATED':
       return {
-        label: 'Создание',
+        label: t('badgeCreated'),
         backgroundColor: 'rgba(67, 149, 61, 0.12)',
         borderColor: 'rgba(67, 149, 61, 0.4)',
         textColor: '#B7F3B3',
       };
     case 'FILE_UPDATED':
       return {
-        label: 'Изменение',
+        label: t('badgeUpdated'),
         backgroundColor: 'rgba(95, 135, 255, 0.12)',
         borderColor: 'rgba(95, 135, 255, 0.4)',
         textColor: '#B8CCFF',
       };
     default:
       return {
-        label: 'Подключение',
+        label: t('badgeJoined'),
         backgroundColor: 'rgba(255,255,255,0.06)',
         borderColor: 'rgba(255,255,255,0.08)',
         textColor: '#D7DEE7',
@@ -190,22 +210,28 @@ function getEventConfig(type: RoomDashboardItem['type']) {
   }
 }
 
-function buildEventTitle(item: RoomDashboardItem) {
-  const actorName = getActorName(item.actor);
+function buildEventTitle(
+  item: RoomDashboardItem,
+  t: ReturnType<typeof useTranslations>,
+) {
+  const actorName = getActorName(item.actor, t);
 
   switch (item.type) {
     case 'FILE_CREATED':
-      return `${actorName} создал файл`;
+      return t('actorCreated', { name: actorName });
     case 'FILE_UPDATED':
-      return `${actorName} обновил файл`;
+      return t('actorUpdated', { name: actorName });
     default:
-      return `${actorName} открыл файл для совместной работы`;
+      return t('actorOpened', { name: actorName });
   }
 }
 
-function getActorName(actor: RoomDashboardItem['actor']) {
+function getActorName(
+  actor: RoomDashboardItem['actor'],
+  t: ReturnType<typeof useTranslations>,
+) {
   if (!actor) {
-    return 'Кто-то';
+    return t('unknownActor');
   }
 
   const fullName = [actor.firstName, actor.lastName]

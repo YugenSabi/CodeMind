@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomDirectory, RoomFile } from '@lib/files';
 import { FolderIcon, JsonIcon } from '@ui/icons';
 import { Button } from '@ui/button';
@@ -64,6 +67,7 @@ export function FileSidebar({
   onMoveFile,
   onMoveDirectory,
 }: FileSidebarProps): ReactNode {
+  const t = useTranslations('room');
   const [expandedDirectoryIds, setExpandedDirectoryIds] = useState<string[]>([]);
   const [dragState, setDragState] = useState<DragState>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -122,7 +126,7 @@ export function FileSidebar({
       <Box justifyContent="space-between" alignItems="center" gap={12}>
         <Box flexDirection="column" gap={4}>
           <Text color="#D7DEE7" font="$footer" size={12} lineHeight="14px">
-            EXPLORER
+            {t('sidebar.title')}
           </Text>
         </Box>
 
@@ -216,7 +220,7 @@ export function FileSidebar({
               flexShrink: 0,
             }}
           >
-            ·
+            •
           </span>
           <Text color="#D7DEE7" font="$footer" size={13} lineHeight="16px">
             {rootName}
@@ -296,7 +300,7 @@ export function FileSidebar({
       {files.length === 0 && directories.length === 0 ? (
         <Box padding={12}>
           <Text color="#7D8793" font="$footer" size={12} lineHeight="18px">
-            В комнате пока нет файлов и папок. Создайте первый элемент проекта, и он сразу откроется в редакторе.
+            {t('sidebar.empty')}
           </Text>
         </Box>
       ) : null}
@@ -555,14 +559,14 @@ function DirectoryNode({
                 onClick={() => {
                   onSelectFile(file.id);
                 }}
-              onDelete={() => {
-                onDeleteFile(file);
-              }}
-              onDownload={() => {
-                onDownloadFile(file);
-              }}
-              onDragStart={() => {
-                onStartDrag({ type: 'file', id: file.id });
+                onDelete={() => {
+                  onDeleteFile(file);
+                }}
+                onDownload={() => {
+                  onDownloadFile(file);
+                }}
+                onDragStart={() => {
+                  onStartDrag({ type: 'file', id: file.id });
                 }}
                 onDragEnd={onEndDrag}
               />

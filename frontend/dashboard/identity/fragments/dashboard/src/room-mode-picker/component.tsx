@@ -1,4 +1,7 @@
+'use client';
+
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { RoomMode } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
@@ -10,36 +13,35 @@ type RoomModePickerProps = {
   onSelectMode: (mode: RoomMode) => void;
 };
 
-const ROOM_MODE_OPTIONS: Array<{
-  mode: RoomMode;
-  title: string;
-  description: string;
-}> = [
-  {
-    mode: 'JUST_CODING',
-    title: 'Just coding',
-    description:
-      'Комната для совместной работы с файлами, папками и запуском кода.',
-  },
-  {
-    mode: 'INTERVIEWS',
-    title: 'Interviews',
-    description:
-      'Формат комнаты специально созданное для собеседований в котором интервьер полностью управляет проектом',
-  },
-  {
-    mode: 'ALGORITHMS',
-    title: 'Algorithms',
-    description:
-      'Совместное решение алгоритмических задач сделанное нейросетью для вашего обучения.',
-  },
-];
-
 export function RoomModePicker({
   isLoading,
   onClose,
   onSelectMode,
 }: RoomModePickerProps): ReactNode {
+  const t = useTranslations('dashboard.roomModePicker');
+
+  const roomModeOptions: Array<{
+    mode: RoomMode;
+    title: string;
+    description: string;
+  }> = [
+    {
+      mode: 'JUST_CODING',
+      title: t('modes.justCodingTitle'),
+      description: t('modes.justCodingDescription'),
+    },
+    {
+      mode: 'INTERVIEWS',
+      title: t('modes.interviewsTitle'),
+      description: t('modes.interviewsDescription'),
+    },
+    {
+      mode: 'ALGORITHMS',
+      title: t('modes.algorithmsTitle'),
+      description: t('modes.algorithmsDescription'),
+    },
+  ];
+
   return (
     <Box
       position="fixed"
@@ -69,10 +71,10 @@ export function RoomModePicker({
         <Box justifyContent="space-between" alignItems="center" gap={16}>
           <Box flexDirection="column" gap={6}>
             <Text color="#FFFFFF" font="$rus" size={24} lineHeight="28px">
-              Выберите формат комнаты
+              {t('title')}
             </Text>
             <Text color="#7D8793" font="$footer" size={13} lineHeight="18px">
-              Режим задает правила работы с файлами и папками внутри комнаты.
+              {t('description')}
             </Text>
           </Box>
           <Button
@@ -89,13 +91,13 @@ export function RoomModePicker({
             onClick={onClose}
           >
             <Text color="#C7D0DB" font="$footer" size={13} lineHeight="16px">
-              Отмена
+              {t('cancel')}
             </Text>
           </Button>
         </Box>
 
         <Box width="$full" gap={12} alignItems="stretch">
-          {ROOM_MODE_OPTIONS.map((option) => (
+          {roomModeOptions.map((option) => (
             <Button
               key={option.mode}
               type="button"

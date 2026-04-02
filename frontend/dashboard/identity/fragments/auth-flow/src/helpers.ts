@@ -30,19 +30,19 @@ export function toStringValue(value: unknown) {
   return typeof value === 'string' ? value : '';
 }
 
-export function humanizeName(name: string) {
+export function humanizeName(name: string, t: (key: string) => string) {
   switch (name) {
     case 'traits.email':
     case 'identifier':
-      return 'Электронная почта';
+      return t('email');
     case 'password':
-      return 'Пароль';
+      return t('password');
     case 'traits.first_name':
-      return 'Имя';
+      return t('firstName');
     case 'traits.last_name':
-      return 'Фамилия';
+      return t('lastName');
     case 'code':
-      return 'Код подтверждения';
+      return t('code');
     default:
       return name;
   }
