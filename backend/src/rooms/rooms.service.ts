@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as path from 'node:path';
+import JSZip from 'jszip';
 import {
   FileEventType,
   FileLanguage,
@@ -11,6 +13,7 @@ import {
   type UserRole,
 } from '@prisma/client';
 import type { Request } from 'express';
+import * as Y from 'yjs';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
@@ -184,6 +187,71 @@ export class RoomsService {
     }));
   }
 
+  async exportRoomProject(request: Request, roomId: string) {
+    const { room } = await this.getAccessibleRoomForRequest(request, roomId);
+    const [files, directories] = await Promise.all([
+      this.prisma.projectFile.findMany({
+        where: {
+          roomId: room.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          directoryId: true,
+          snapshot: {
+            select: {
+              state: true,
+            },
+          },
+        },
+      }),
+      this.prisma.projectDirectory.findMany({
+        where: {
+          roomId: room.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          parentId: true,
+        },
+      }),
+    ]);
+
+    const zip = new JSZip();
+    const directoryPathMap = this.buildDirectoryPathMap(directories);
+    const archiveRoot = this.normalizeArchiveSegment(room.name) || 'project';
+
+    for (const directory of directories) {
+      const directoryPath = directoryPathMap.get(directory.id);
+
+      if (!directoryPath) {
+        throw new BadRequestException('Directory path was not found');
+      }
+
+      zip.folder(path.posix.join(archiveRoot, directoryPath));
+    }
+
+    for (const file of files) {
+      const filePath = this.buildFilePath(
+        {
+          name: file.name,
+          directoryId: file.directoryId,
+        },
+        directoryPathMap,
+      );
+
+      zip.file(
+        path.posix.join(archiveRoot, filePath),
+        this.readSnapshotContent(file.snapshot?.state),
+      );
+    }
+
+    return {
+      fileName: `${archiveRoot}.zip`,
+      archive: await zip.generateAsync({ type: 'nodebuffer' }),
+    };
+  }
+
   async removeParticipant(
     request: Request,
     roomId: string,
@@ -329,6 +397,96 @@ export class RoomsService {
     }
 
     throw new Error('Unable to generate unique join code');
+  }
+
+  private buildDirectoryPathMap(
+    directories: Array<{
+      id: string;
+      name: string;
+      parentId: string | null;
+    }>,
+  ) {
+    const byId = new Map(
+      directories.map((directory) => [directory.id, directory]),
+    );
+    const pathMap = new Map<string, string>();
+    const visiting = new Set<string>();
+
+    const resolvePath = (directoryId: string): string => {
+      const cached = pathMap.get(directoryId);
+      if (cached) {
+        return cached;
+      }
+
+      if (visiting.has(directoryId)) {
+        throw new BadRequestException('Invalid project directory structure');
+      }
+
+      const directory = byId.get(directoryId);
+      if (!directory) {
+        throw new BadRequestException('Directory was not found');
+      }
+
+      visiting.add(directoryId);
+
+      const normalizedName = this.normalizeArchiveSegment(directory.name);
+      const resolvedPath = directory.parentId
+        ? path.posix.join(resolvePath(directory.parentId), normalizedName)
+        : normalizedName;
+
+      visiting.delete(directoryId);
+      pathMap.set(directoryId, resolvedPath);
+
+      return resolvedPath;
+    };
+
+    for (const directory of directories) {
+      resolvePath(directory.id);
+    }
+
+    return pathMap;
+  }
+
+  private buildFilePath(
+    file: {
+      name: string;
+      directoryId: string | null;
+    },
+    directoryPathMap: Map<string, string>,
+  ) {
+    const normalizedName = this.normalizeArchiveSegment(file.name);
+
+    if (!file.directoryId) {
+      return normalizedName;
+    }
+
+    const directoryPath = directoryPathMap.get(file.directoryId);
+
+    if (!directoryPath) {
+      throw new BadRequestException('Directory path was not found');
+    }
+
+    return path.posix.join(directoryPath, normalizedName);
+  }
+
+  private readSnapshotContent(state?: Uint8Array | Buffer | null) {
+    if (!state) {
+      return '';
+    }
+
+    const document = new Y.Doc();
+
+    try {
+      Y.applyUpdate(document, new Uint8Array(state));
+      const text = document.getText('content');
+      return text.toJSON();
+    } finally {
+      document.destroy();
+    }
+  }
+
+  private normalizeArchiveSegment(segment: string) {
+    return segment.trim().replace(/[\\/:*?"<>|]/g, '_');
   }
 
   private toRoomView(

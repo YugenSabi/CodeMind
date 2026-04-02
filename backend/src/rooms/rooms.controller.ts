@@ -6,8 +6,9 @@ import {
   Param,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
@@ -42,6 +43,24 @@ export class RoomsController {
   @Get(':id/dashboard')
   getRoomDashboard(@Req() request: Request, @Param('id') id: string) {
     return this.roomsService.getRoomDashboard(request, id);
+  }
+
+  @Get(':id/export')
+  async exportRoomProject(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Res() response: Response,
+  ) {
+    const project = await this.roomsService.exportRoomProject(request, id);
+    const encodedFileName = encodeURIComponent(project.fileName);
+
+    response.setHeader('Content-Type', 'application/zip');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${project.fileName}"; filename*=UTF-8''${encodedFileName}`,
+    );
+
+    response.send(project.archive);
   }
 
   @Delete(':id/members/:participantId')

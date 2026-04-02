@@ -13,6 +13,7 @@ import {
   type User,
 } from '@prisma/client';
 import type { Request } from 'express';
+import * as Y from 'yjs';
 import { FileEventsService } from '../file-events/file-events.service';
 import { KratosService } from '../kratos/kratos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -160,6 +161,22 @@ export class FilesService {
     const file = await this.getAccessibleFileById(user, fileId);
 
     return this.toFileView(file);
+  }
+
+  async download(request: Request, fileId: string) {
+    const user = await this.getAuthenticatedUserFromRequest(request);
+    const file = await this.getAccessibleFileById(user, fileId);
+    const snapshot = await this.prismaService.fileSnapshot.findUnique({
+      where: { fileId: file.id },
+      select: {
+        state: true,
+      },
+    });
+
+    return {
+      fileName: file.name,
+      content: this.readSnapshotContent(snapshot?.state),
+    };
   }
 
   async update(request: Request, fileId: string, updateFileDto: UpdateFileDto) {
@@ -450,6 +467,22 @@ export class FilesService {
 
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
+  }
+
+  private readSnapshotContent(state?: Uint8Array | Buffer | null) {
+    if (!state) {
+      return '';
+    }
+
+    const document = new Y.Doc();
+
+    try {
+      Y.applyUpdate(document, new Uint8Array(state));
+      const text = document.getText('content');
+      return text.toJSON();
+    } finally {
+      document.destroy();
+    }
   }
 
   private async ensureRoomAccess(

@@ -8,9 +8,10 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { CreateDirectoryDto } from './dto/create-directory.dto';
 import { CreateFileDto } from './dto/create-file.dto';
 import { ListFilesQueryDto } from './dto/list-files-query.dto';
@@ -45,6 +46,22 @@ export class FilesController {
   @Get(':id')
   getById(@Req() request: Request, @Param('id') id: string) {
     return this.filesService.getById(request, id);
+  }
+
+  @Get(':id/download')
+  async download(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Res() response: Response,
+  ) {
+    const file = await this.filesService.download(request, id);
+
+    response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.fileName}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    );
+    response.send(file.content);
   }
 
   @Patch(':id')

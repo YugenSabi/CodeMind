@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import type { RoomFile } from '@lib/files';
 import {
   CssIcon,
+  DownloadIcon,
   HtmlIcon,
   JsIcon as JavaScriptIcon,
   JsonIcon,
@@ -18,11 +19,13 @@ type FileCardProps = {
   file: RoomFile;
   isActive: boolean;
   canDelete: boolean;
+  canDownload?: boolean;
   canDrag?: boolean;
   isDeleting: boolean;
   isDragging?: boolean;
   onClick: () => void;
   onDelete: () => void;
+  onDownload?: () => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
 };
@@ -31,14 +34,18 @@ export function FileCard({
   file,
   isActive,
   canDelete,
+  canDownload = true,
   canDrag = true,
   isDeleting,
   isDragging = false,
   onClick,
   onDelete,
+  onDownload,
   onDragStart,
   onDragEnd,
 }: FileCardProps): ReactNode {
+  const hasTrailingActions = canDelete || canDownload;
+
   return (
     <Box width="$full" position="relative">
       <Button
@@ -61,7 +68,7 @@ export function FileCard({
           backgroundColor={isActive ? 'rgba(95, 135, 255, 0.12)' : 'transparent'}
           borderRadius={10}
           paddingLeft={10}
-          paddingRight={34}
+          paddingRight={hasTrailingActions ? (canDelete && canDownload ? 58 : 34) : 10}
           alignItems="center"
           gap={8}
           style={{
@@ -84,6 +91,34 @@ export function FileCard({
           </Text>
         </Box>
       </Button>
+
+      {canDownload && onDownload ? (
+        <Button
+          type="button"
+          variant="ghost"
+          width={20}
+          height={20}
+          minWidth={20}
+          minHeight={20}
+          padding={0}
+          borderRadius={8}
+          textColor="#7D8793"
+          bg="transparent"
+          style={{ position: 'absolute', top: 8, right: canDelete ? 30 : 8 }}
+          onClick={onDownload}
+        >
+          <DownloadIcon
+            width={14}
+            height={14}
+            style={{
+              width: 14,
+              height: 14,
+              display: 'block',
+              color: '#FFFFFF',
+            }}
+          />
+        </Button>
+      ) : null}
 
       {canDelete ? (
         <Button

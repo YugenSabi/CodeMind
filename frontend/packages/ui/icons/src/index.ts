@@ -9,3 +9,4 @@ export { default as TsIcon } from './typescript.svg';
 export { default as JsonIcon } from './json.svg';
 export { default as PyIcon } from './python.svg';
 export { default as FolderIcon } from './folder.svg';
+export { default as DownloadIcon } from './download.svg';

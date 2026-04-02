@@ -8,6 +8,7 @@ import {
   createFile,
   deleteDirectory,
   deleteFile,
+  downloadFile,
   type RoomDirectory,
   moveDirectory,
   moveFile,
@@ -17,6 +18,7 @@ import {
   connectRoomSocket,
   deleteRoom,
   disconnectRoomSocket,
+  downloadRoomProject,
   getRoom,
   getRoomDashboard,
   joinRoomSocket,
@@ -74,6 +76,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'dashboard'>('editor');
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+  const [isDownloadingProject, setIsDownloadingProject] = useState(false);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
   const [createItemType, setCreateItemType] = useState<'file' | 'directory'>(
@@ -438,6 +441,26 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
     }
   };
 
+  const handleDownloadProject = async () => {
+    if (!room || isDownloadingProject) {
+      return;
+    }
+
+    try {
+      setIsDownloadingProject(true);
+      setErrorMessage(null);
+      await downloadRoomProject(room.id, room.name);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось скачать проект. Попробуйте еще раз.',
+      );
+    } finally {
+      setIsDownloadingProject(false);
+    }
+  };
+
   const handleConfirmAction = async () => {
     if (!room || !confirmState) {
       return;
@@ -728,6 +751,7 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           activeTab={activeTab}
           isOwner={isOwner}
           isDeletingRoom={isDeletingRoom}
+          isDownloadingProject={isDownloadingProject}
           isParticipantsOpen={isParticipantsOpen}
           removingParticipantId={removingParticipantId}
           isRoomCodeCopied={isRoomCodeCopied}
@@ -735,6 +759,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
           onCopyRoomCode={handleCopyRoomCode}
           onSelectTab={setActiveTab}
           onDeleteRoom={confirmDeleteRoom}
+          onDownloadProject={() => {
+            void handleDownloadProject();
+          }}
           onToggleParticipants={() => {
             setIsParticipantsOpen((current) => !current);
           }}
@@ -785,6 +812,9 @@ export function RoomComponent({ roomId }: RoomComponentProps): ReactNode {
               }}
               onSelectFile={(fileId) => {
                 setSelectedFileId(fileId);
+              }}
+              onDownloadFile={(file) => {
+                void downloadFile(file.id, file.name);
               }}
               onDeleteFile={confirmDeleteFile}
               onDeleteDirectory={confirmDeleteDirectory}

@@ -74,6 +74,58 @@ export async function deleteDirectory(
   );
 }
 
+export async function downloadFile(
+  fileId: string,
+  fileNameHint?: string,
+): Promise<void> {
+  const response = await fetch(
+    `${BACKEND_URL}/files/${encodeURIComponent(fileId)}/download`,
+    {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(response);
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = URL.createObjectURL(blob);
+  const contentDisposition = response.headers.get('Content-Disposition');
+  const fileName = extractFileName(contentDisposition) ?? fileNameHint ?? 'download';
+
+  const anchor = document.createElement('a');
+  anchor.href = downloadUrl;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(downloadUrl);
+}
+
+function extractFileName(contentDisposition: string | null) {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const fileNameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/i);
+  const value = fileNameMatch?.[1] ?? fileNameMatch?.[2];
+
+  if (!value) {
+    return null;
+  }
+
+  return value.trim();
+}
+
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${BACKEND_URL}${path}`, {
     ...init,

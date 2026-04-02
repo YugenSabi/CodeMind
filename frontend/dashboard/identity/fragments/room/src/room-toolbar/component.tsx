@@ -3,6 +3,7 @@ import type { Room, RoomParticipant, RoomSocketStatus } from '@lib/rooms';
 import { Button } from '@ui/button';
 import { Box } from '@ui/layout';
 import { Text } from '@ui/text';
+import { DownloadIcon } from '@ui/icons';
 import {
   ConnectionBadge,
   ParticipantsIcon,
@@ -16,6 +17,7 @@ type RoomToolbarProps = {
   activeTab: 'editor' | 'dashboard';
   isOwner: boolean;
   isDeletingRoom: boolean;
+  isDownloadingProject: boolean;
   isParticipantsOpen: boolean;
   removingParticipantId: string | null;
   isRoomCodeCopied: boolean;
@@ -23,6 +25,7 @@ type RoomToolbarProps = {
   onCopyRoomCode: () => void;
   onSelectTab: (tab: 'editor' | 'dashboard') => void;
   onDeleteRoom: () => void;
+  onDownloadProject: () => void;
   onToggleParticipants: () => void;
   onRemoveParticipant: (participant: RoomParticipant) => void;
 };
@@ -33,6 +36,7 @@ export function RoomToolbar({
   activeTab,
   isOwner,
   isDeletingRoom,
+  isDownloadingProject,
   isParticipantsOpen,
   removingParticipantId,
   isRoomCodeCopied,
@@ -40,6 +44,7 @@ export function RoomToolbar({
   onCopyRoomCode,
   onSelectTab,
   onDeleteRoom,
+  onDownloadProject,
   onToggleParticipants,
   onRemoveParticipant,
 }: RoomToolbarProps): ReactNode {
@@ -132,6 +137,26 @@ export function RoomToolbar({
         </Box>
 
         <ConnectionBadge status={socketStatus} />
+
+        <Button
+          type="button"
+          variant="ghost"
+          height={36}
+          minWidth={36}
+          padding={10}
+          border="1px solid"
+          borderColor="rgba(255,255,255,0.08)"
+          borderRadius={10}
+          textColor="#FFFFFF"
+          bg="transparent"
+          startIcon={<DownloadIcon width={16} height={16} color="#FFFFFF"/>}
+          disabled={isDownloadingProject}
+          onClick={onDownloadProject}
+        >
+          <Text color="#FFFFFF" font="$footer" size={12}>
+            {isDownloadingProject ? 'Загрузка...' : 'Скачать проект'}
+          </Text>
+        </Button>
 
         {isOwner ? (
           <Button

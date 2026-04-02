@@ -20,6 +20,7 @@ type FileSidebarProps = {
   onCreateFile: () => void;
   onCreateDirectory: () => void;
   onSelectFile: (fileId: string) => void;
+  onDownloadFile: (file: RoomFile) => void;
   onDeleteFile: (file: RoomFile) => void;
   onDeleteDirectory: (directory: RoomDirectory) => void;
   onMoveFile: (fileId: string, directoryId: string | null) => void;
@@ -57,6 +58,7 @@ export function FileSidebar({
   onCreateFile,
   onCreateDirectory,
   onSelectFile,
+  onDownloadFile,
   onDeleteFile,
   onDeleteDirectory,
   onMoveFile,
@@ -237,6 +239,7 @@ export function FileSidebar({
             dropTargetId={dropTargetId}
             onToggleDirectory={toggleDirectory}
             onSelectFile={onSelectFile}
+            onDownloadFile={onDownloadFile}
             onDeleteFile={onDeleteFile}
             onDeleteDirectory={onDeleteDirectory}
             onMoveFile={onMoveFile}
@@ -271,6 +274,9 @@ export function FileSidebar({
               }}
               onDelete={() => {
                 onDeleteFile(file);
+              }}
+              onDownload={() => {
+                onDownloadFile(file);
               }}
               onDragStart={() => {
                 setDragState({ type: 'file', id: file.id });
@@ -348,6 +354,7 @@ function DirectoryNode({
   dropTargetId,
   onToggleDirectory,
   onSelectFile,
+  onDownloadFile,
   onDeleteFile,
   onDeleteDirectory,
   onMoveFile,
@@ -369,6 +376,7 @@ function DirectoryNode({
   dropTargetId: string | null;
   onToggleDirectory: (directoryId: string) => void;
   onSelectFile: (fileId: string) => void;
+  onDownloadFile: (file: RoomFile) => void;
   onDeleteFile: (file: RoomFile) => void;
   onDeleteDirectory: (directory: RoomDirectory) => void;
   onMoveFile: (fileId: string, directoryId: string | null) => void;
@@ -522,6 +530,7 @@ function DirectoryNode({
               dropTargetId={dropTargetId}
               onToggleDirectory={onToggleDirectory}
               onSelectFile={onSelectFile}
+              onDownloadFile={onDownloadFile}
               onDeleteFile={onDeleteFile}
               onDeleteDirectory={onDeleteDirectory}
               onMoveFile={onMoveFile}
@@ -546,11 +555,14 @@ function DirectoryNode({
                 onClick={() => {
                   onSelectFile(file.id);
                 }}
-                onDelete={() => {
-                  onDeleteFile(file);
-                }}
-                onDragStart={() => {
-                  onStartDrag({ type: 'file', id: file.id });
+              onDelete={() => {
+                onDeleteFile(file);
+              }}
+              onDownload={() => {
+                onDownloadFile(file);
+              }}
+              onDragStart={() => {
+                onStartDrag({ type: 'file', id: file.id });
                 }}
                 onDragEnd={onEndDrag}
               />

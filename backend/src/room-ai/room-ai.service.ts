@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  AlgorithmDifficulty,
   FileLanguage,
   RoomAiInteractionKind,
   RoomMode,
@@ -13,17 +12,11 @@ import {
 } from '@prisma/client';
 import type { Request } from 'express';
 import * as Y from 'yjs';
-import {
-  CodeAssistAction,
-  LlmService,
-} from '../llm/llm.service';
+import { CodeAssistAction, LlmService } from '../llm/llm.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
 import { RoomsService } from '../rooms/rooms.service';
-import {
-  AssistRoomAiDto,
-  RoomAiAssistAction,
-} from './dto/assist-room-ai.dto';
+import { AssistRoomAiDto, RoomAiAssistAction } from './dto/assist-room-ai.dto';
 import { GenerateAlgorithmTaskDto } from './dto/generate-algorithm-task.dto';
 import { ReviewAlgorithmSolutionDto } from './dto/review-algorithm-solution.dto';
 
@@ -94,7 +87,10 @@ export class RoomAiService {
 
     let fileId: string | null = null;
     if (dto.fileId) {
-      const file = await this.filesService.getAccessibleFileById(user, dto.fileId);
+      const file = await this.filesService.getAccessibleFileById(
+        user,
+        dto.fileId,
+      );
 
       if (file.roomId !== room.id) {
         throw new ForbiddenException('File does not belong to this room');
@@ -318,7 +314,10 @@ export class RoomAiService {
       );
     }
 
-    const file = await this.filesService.getAccessibleFileById(user, dto.fileId);
+    const file = await this.filesService.getAccessibleFileById(
+      user,
+      dto.fileId,
+    );
 
     if (file.roomId !== roomId) {
       throw new ForbiddenException('File does not belong to this room');
@@ -337,7 +336,7 @@ export class RoomAiService {
     const document = new Y.Doc();
     Y.applyUpdate(document, new Uint8Array(snapshot.state));
 
-    return document.getText('content').toString();
+    return document.getText('content').toJSON();
   }
 
   private mapAssistActionToKind(action: RoomAiAssistAction) {
