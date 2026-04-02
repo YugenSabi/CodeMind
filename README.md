@@ -212,3 +212,12 @@ cd backend
 yarn lint
 yarn build
 ```
+
+## Порты проекта
+- frontend: http://localhost:3000
+- backend: http://localhost:4000
+- backend health: http://localhost:4000/health
+- kratos public: http://localhost:4433
+- kratos admin: http://localhost:4434
+- mailhog ui: http://localhost:8025
+- postgres: localhost:5432
