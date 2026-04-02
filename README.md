@@ -220,7 +220,7 @@ yarn build
 - kratos public: http://localhost:4433
 - kratos admin: http://localhost:4434
 - mailhog ui: http://localhost:8025
-- postgres: localhost:5432
+- postgres: http://localhost:5432
 
 ## Авторизация
 
