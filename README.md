@@ -1,5 +1,4 @@
 ![img.png](img.png)
-- **Презентация**: [`CodeMind.pdf`](CodeMind.pdf)
 
 ## Что умеет проект
 
